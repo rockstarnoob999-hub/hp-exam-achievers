@@ -36,10 +36,23 @@ export default function TeacherDashboard() {
     router.push("/");
   }
 
+  async function handleDelete(mockId: string, title: string) {
+    const confirmed = window.confirm(
+      "Delete this test? This will permanently remove the test, all its questions, and all student results. This cannot be undone."
+    );
+    if (!confirmed) return;
+    const res = await fetch("/api/mocks/" + mockId, { method: "DELETE" });
+    if (!res.ok) {
+      alert("Failed to delete the test.");
+      return;
+    }
+    setMocks((prev) => prev.filter((m) => m.id !== mockId));
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <div className="font-bold text-navy">HP Exam Achievers — Teacher</div>
+        <div className="font-bold text-navy">HP Exam Achievers - Teacher</div>
         <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-red-600">Logout</button>
       </header>
 
@@ -47,6 +60,9 @@ export default function TeacherDashboard() {
         <div className="flex flex-wrap gap-3 mb-8">
           <button onClick={() => setShowMockForm(true)} className="btn-primary">+ Create Mock Test</button>
           <button onClick={() => setShowStudentForm(true)} className="btn-gold">+ Add Student</button>
+          <Link href="/teacher/students" className="px-5 py-2.5 rounded-lg font-medium border border-navy text-navy hover:bg-navy hover:text-white transition">
+            Manage Students
+          </Link>
         </div>
 
         <h2 className="font-semibold text-lg mb-3">Your Mock Tests</h2>
@@ -70,8 +86,15 @@ export default function TeacherDashboard() {
                   <strong>Link:</strong> {typeof window !== "undefined" ? window.location.origin : ""}/exam/{m.id}<br/>
                   <strong>Password:</strong> {m.access_password}
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <Link href={`/teacher/mocks/${m.id}`} className="text-sm text-navy underline">Manage Questions</Link>
+                <div className="mt-3 flex gap-3 items-center flex-wrap">
+                  <Link href={"/teacher/mocks/" + m.id} className="text-sm text-navy underline">Manage Questions</Link>
+                  <Link href={"/teacher/mocks/" + m.id + "/leaderboard"} className="text-sm text-navy underline">Leaderboard</Link>
+                  <button
+                    onClick={() => handleDelete(m.id, m.title)}
+                    className="text-sm text-red-600 underline ml-auto"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}
@@ -124,7 +147,7 @@ function CreateMockModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <input type="number" step="0.25" className="input-field" placeholder="Negative Marking"
               value={form.negative_marking} onChange={(e) => setForm({ ...form, negative_marking: Number(e.target.value) })} />
           </div>
-          <input className="input-field" placeholder="Test Access Password (shared with students)" required
+          <input className="input-field" placeholder="Test Access Password" required
             value={form.access_password} onChange={(e) => setForm({ ...form, access_password: e.target.value })} />
           <textarea className="input-field" placeholder="Instructions"
             value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} />
@@ -158,7 +181,7 @@ function AddStudentModal({ mocks, onClose }: { mocks: Mock[]; onClose: () => voi
     const data = await res.json();
     setSaving(false);
     if (!res.ok) { setError(data.error); return; }
-    setSuccess(`Student "${data.student.name}" created with their own password.`);
+    setSuccess("Student " + data.student.name + " created successfully.");
     setForm({ name: "", email: "", phone: "", password: "", attempts_allowed: 3 });
   }
 
@@ -177,7 +200,6 @@ function AddStudentModal({ mocks, onClose }: { mocks: Mock[]; onClose: () => voi
             value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
           <input type="number" className="input-field" placeholder="Attempts Allowed"
             value={form.attempts_allowed} onChange={(e) => setForm({ ...form, attempts_allowed: Number(e.target.value) })} />
-
           <div>
             <p className="text-sm text-gray-600 mb-1">Assign to tests:</p>
             <div className="space-y-1 max-h-32 overflow-y-auto border rounded-lg p-2">
@@ -198,7 +220,6 @@ function AddStudentModal({ mocks, onClose }: { mocks: Mock[]; onClose: () => voi
               {mocks.length === 0 && <p className="text-xs text-gray-400">Create a mock test first.</p>}
             </div>
           </div>
-
           {error && <p className="text-sm text-red-600">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
           <div className="flex gap-2 pt-2">

@@ -46,6 +46,12 @@ export default function ResultPage() {
           <Stat label="Status" value={attempt.status === "auto_submitted" ? "Auto-submitted" : "Submitted"} />
         </div>
 
+        {mock?.leaderboard_enabled && (
+          <Link href={`/leaderboard/${mock.id}`} className="text-sm text-navy underline inline-block mb-8">
+            View full leaderboard →
+          </Link>
+        )}
+
         {mock?.show_correct_answers && (
           <>
             <h2 className="font-semibold mb-3">Answer Review</h2>
