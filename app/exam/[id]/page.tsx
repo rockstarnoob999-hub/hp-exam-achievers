@@ -98,40 +98,47 @@ export default function ExamPage() {
     fetch("/api/attempts/" + attemptId, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question_id: questionId, selected_option: selected ?? null, marked_for_review: marked }),
+      body: JSON.stringify({
+        question_id: questionId,
+        selected_option: selected ?? null,
+        marked_for_review: marked,
+      }),
     }).catch(() => {});
   }
 
   if (phase === "password") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4"
+        style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}>
         <div className="w-full max-w-sm">
           <div className="text-center mb-6">
-            <div className="font-bold text-white text-xl mb-1">HP <span className="text-gold">Exam Achievers</span></div>
-            <Link href="/" className="text-xs text-white/30 hover:text-white transition">Home</Link>
+            <div className="font-bold text-navy text-xl mb-1">
+              HP <span className="text-gold">Exam Achievers</span>
+            </div>
+            <Link href="/" className="text-xs text-gray-400 hover:text-navy transition">Home</Link>
           </div>
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-7">
-            <h2 className="font-semibold text-white mb-1">{mock?.title || "Loading test..."}</h2>
-            <p className="text-sm text-white/50 mb-1">{mock?.exam_name}</p>
+          <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-2xl p-7 shadow-md">
+            <h2 className="font-semibold text-navy mb-1">{mock?.title || "Loading test..."}</h2>
+            <p className="text-sm text-gray-400 mb-1">{mock?.exam_name}</p>
             {mock?.duration_minutes && (
-              <p className="text-xs text-white/40 mb-4">Duration: {mock.duration_minutes} minutes</p>
+              <p className="text-xs text-gray-400 mb-4">Duration: {mock.duration_minutes} minutes</p>
             )}
             {mock?.instructions && (
-              <p className="text-xs text-white/50 mb-4 whitespace-pre-line border border-white/10 rounded-lg p-3">
+              <p className="text-xs text-gray-500 mb-4 whitespace-pre-line border border-blue-100 rounded-lg p-3 bg-blue-50/30">
                 {mock.instructions}
               </p>
             )}
             <form onSubmit={startAttempt} className="space-y-3">
               <input
                 type="password"
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-gold"
+                className="input-field"
                 placeholder="Enter test password"
                 value={accessPassword}
                 onChange={(e) => setAccessPassword(e.target.value)}
                 required
               />
-              {error && <p className="text-sm text-red-300">{error}</p>}
-              <button type="submit" className="w-full bg-gold text-navy font-semibold py-2.5 rounded-lg hover:opacity-90 transition">
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <button type="submit" className="btn-primary w-full">
                 Start Test
               </button>
             </form>
@@ -143,10 +150,11 @@ export default function ExamPage() {
 
   if (phase === "submitting") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}>
         <div className="text-center">
-          <div className="inline-block w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin mb-3"></div>
-          <p className="text-white/50">Submitting your test...</p>
+          <div className="inline-block w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p className="text-gray-400">Submitting your test...</p>
         </div>
       </div>
     );
@@ -158,12 +166,21 @@ export default function ExamPage() {
   const answeredCount = Object.values(responses).filter((r) => r.selected).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 flex flex-col">
-      <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between backdrop-blur-sm bg-white/5">
-        <div className="font-semibold text-white text-sm">{mock?.title}</div>
+    <div className="min-h-screen flex flex-col"
+      style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}>
+      <header className="bg-white/90 backdrop-blur-sm border-b border-blue-100 px-4 py-3 flex items-center justify-between shadow-sm">
+        <div className="font-semibold text-navy text-sm">{mock?.title}</div>
         <div className="flex items-center gap-4 text-sm">
-          <span className="text-white/50">Q{current + 1}/{questions.length}</span>
-          <span className={"font-mono px-3 py-1 rounded-lg font-semibold " + (secondsLeft < 60 ? "bg-red-500/30 text-red-300" : secondsLeft < 300 ? "bg-yellow-500/20 text-yellow-300" : "bg-white/10 text-white")}>
+          <span className="text-gray-400">Q{current + 1}/{questions.length}</span>
+          <span className={
+            "font-mono px-3 py-1 rounded-lg font-semibold " + (
+              secondsLeft < 60
+                ? "bg-red-100 text-red-600 border border-red-200"
+                : secondsLeft < 300
+                ? "bg-yellow-50 text-yellow-600 border border-yellow-200"
+                : "bg-blue-50 text-navy border border-blue-100"
+            )
+          }>
             {mins}:{secs.toString().padStart(2, "0")}
           </span>
         </div>
@@ -173,27 +190,31 @@ export default function ExamPage() {
         <main className="flex-1 p-5">
           {q && (
             <>
-              <div className="bg-white/10 border border-white/10 rounded-xl p-5 mb-4">
-                <p className="font-medium text-white">{current + 1}. {q.question_text}</p>
-                {q.image_url && <img src={q.image_url} alt="question" className="max-w-full rounded-lg mt-3" />}
+              <div className="bg-white/90 border border-blue-100 rounded-xl p-5 mb-4 shadow-sm">
+                <p className="font-medium text-navy">{current + 1}. {q.question_text}</p>
+                {q.image_url && (
+                  <img src={q.image_url} alt="question" className="max-w-full rounded-lg mt-3" />
+                )}
               </div>
 
               <div className="space-y-2 mb-6">
                 {(["a", "b", "c", "d"] as const).map((opt) => (
                   <label
                     key={opt}
-                    className={"flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition " + (
-                      responses[q.id]?.selected === opt
-                        ? "border-gold bg-gold/10 text-white"
-                        : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
-                    )}
+                    className={
+                      "flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition bg-white/80 " + (
+                        responses[q.id]?.selected === opt
+                          ? "border-navy bg-blue-50 text-navy font-medium"
+                          : "border-blue-100 text-gray-600 hover:border-blue-300 hover:bg-blue-50/50"
+                      )
+                    }
                   >
                     <input
                       type="radio"
                       name={q.id}
                       checked={responses[q.id]?.selected === opt}
                       onChange={() => saveAnswer(q.id, opt)}
-                      className="accent-gold"
+                      className="accent-navy"
                     />
                     <span>{(q as any)["option_" + opt]}</span>
                   </label>
@@ -204,26 +225,32 @@ export default function ExamPage() {
                 <button
                   onClick={() => setCurrent((c) => Math.max(0, c - 1))}
                   disabled={current === 0}
-                  className="border border-white/20 text-white/70 rounded-lg px-4 py-2 text-sm hover:bg-white/10 transition disabled:opacity-30"
+                  className="border border-blue-200 text-gray-500 rounded-lg px-4 py-2 text-sm hover:bg-blue-50 transition disabled:opacity-30"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => saveAnswer(q.id, undefined)}
-                  className="border border-white/20 text-white/70 rounded-lg px-4 py-2 text-sm hover:bg-white/10 transition"
+                  className="border border-blue-200 text-gray-500 rounded-lg px-4 py-2 text-sm hover:bg-blue-50 transition"
                 >
                   Clear
                 </button>
                 <button
                   onClick={() => saveAnswer(q.id, responses[q.id]?.selected, !responses[q.id]?.marked)}
-                  className={"border rounded-lg px-4 py-2 text-sm transition " + (responses[q.id]?.marked ? "border-purple-400 text-purple-300 bg-purple-500/10" : "border-white/20 text-white/70 hover:bg-white/10")}
+                  className={
+                    "border rounded-lg px-4 py-2 text-sm transition " + (
+                      responses[q.id]?.marked
+                        ? "border-purple-300 text-purple-600 bg-purple-50"
+                        : "border-blue-200 text-gray-500 hover:bg-blue-50"
+                    )
+                  }
                 >
                   {responses[q.id]?.marked ? "Unmark" : "Mark for Review"}
                 </button>
                 {current < questions.length - 1 ? (
                   <button
                     onClick={() => setCurrent((c) => c + 1)}
-                    className="bg-gold text-navy font-semibold rounded-lg px-4 py-2 text-sm hover:opacity-90 transition"
+                    className="btn-primary text-sm"
                   >
                     Save & Next
                   </button>
@@ -240,21 +267,27 @@ export default function ExamPage() {
           )}
         </main>
 
-        <aside className="md:w-64 p-5 border-t md:border-t-0 md:border-l border-white/10 bg-white/5">
-          <p className="text-xs text-white/40 mb-3">Answered: {answeredCount}/{questions.length}</p>
+        <aside className="md:w-64 p-5 border-t md:border-t-0 md:border-l border-blue-100 bg-white/50">
+          <p className="text-xs text-gray-400 mb-3">
+            Answered: {answeredCount}/{questions.length}
+          </p>
           <div className="grid grid-cols-6 md:grid-cols-5 gap-1.5 mb-4">
             {questions.map((qq, i) => {
               const r = responses[qq.id];
               const cls = r?.selected
-                ? "bg-green-500/80 text-white"
+                ? "bg-green-500 text-white border-green-500"
                 : r?.marked
-                ? "bg-purple-500/80 text-white"
-                : "bg-white/10 text-white/50";
+                ? "bg-purple-400 text-white border-purple-400"
+                : "bg-white text-gray-400 border-blue-100";
               return (
                 <button
                   key={qq.id}
                   onClick={() => setCurrent(i)}
-                  className={"w-9 h-9 rounded-lg text-xs font-medium transition " + cls + (current === i ? " ring-2 ring-gold" : "")}
+                  className={
+                    "w-9 h-9 rounded-lg text-xs font-medium border transition " +
+                    cls +
+                    (current === i ? " ring-2 ring-navy ring-offset-1" : "")
+                  }
                 >
                   {i + 1}
                 </button>
@@ -263,7 +296,7 @@ export default function ExamPage() {
           </div>
           <button
             onClick={() => handleSubmit(false)}
-            className="w-full bg-gold text-navy font-semibold rounded-lg py-2 text-sm hover:opacity-90 transition"
+            className="btn-primary w-full text-sm"
           >
             Submit Test
           </button>
