@@ -11,6 +11,12 @@ type Mock = {
   duration_minutes: number;
   total_marks: number;
   access_password: string;
+  negative_marking: number;
+  passing_marks: number;
+  instructions: string;
+  show_result_immediately: boolean;
+  show_correct_answers: boolean;
+  leaderboard_enabled: boolean;
   created_at: string;
 };
 
@@ -19,6 +25,7 @@ export default function TeacherDashboard() {
   const [mocks, setMocks] = useState<Mock[]>([]);
   const [showMockForm, setShowMockForm] = useState(false);
   const [showStudentForm, setShowStudentForm] = useState(false);
+  const [editingMock, setEditingMock] = useState<Mock | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function loadMocks() {
@@ -36,65 +43,83 @@ export default function TeacherDashboard() {
     router.push("/");
   }
 
-  async function handleDelete(mockId: string, title: string) {
-    const confirmed = window.confirm(
-      "Delete this test? This will permanently remove the test, all its questions, and all student results. This cannot be undone."
-    );
+  async function handleDelete(mockId: string) {
+    const confirmed = window.confirm("Delete this test? All questions and student results will be permanently removed.");
     if (!confirmed) return;
     const res = await fetch("/api/mocks/" + mockId, { method: "DELETE" });
-    if (!res.ok) {
-      alert("Failed to delete the test.");
-      return;
-    }
+    if (!res.ok) { alert("Failed to delete the test."); return; }
     setMocks((prev) => prev.filter((m) => m.id !== mockId));
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <div className="font-bold text-navy">HP Exam Achievers - Teacher</div>
-        <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-red-600">Logout</button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-navy to-slate-800">
+      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-sm bg-white/5">
+        <div className="flex items-center gap-4">
+          <div className="font-bold text-white">HP <span className="text-gold">Exam Achievers</span></div>
+          <Link href="/" className="text-xs text-white/40 hover:text-white transition">Home</Link>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/teacher/students" className="text-sm text-white/70 hover:text-white transition">
+            Manage Students
+          </Link>
+          <button onClick={handleLogout} className="text-sm text-white/50 hover:text-red-400 transition">Logout</button>
+        </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h1 className="font-display font-semibold text-2xl text-white mb-1">Teacher Dashboard</h1>
+          <p className="text-white/50 text-sm">{mocks.length} mock test{mocks.length !== 1 ? "s" : ""} created</p>
+        </div>
+
         <div className="flex flex-wrap gap-3 mb-8">
-          <button onClick={() => setShowMockForm(true)} className="btn-primary">+ Create Mock Test</button>
-          <button onClick={() => setShowStudentForm(true)} className="btn-gold">+ Add Student</button>
-          <Link href="/teacher/students" className="px-5 py-2.5 rounded-lg font-medium border border-navy text-navy hover:bg-navy hover:text-white transition">
+          <button onClick={() => setShowMockForm(true)} className="bg-gold text-navy px-5 py-2.5 rounded-lg font-semibold hover:opacity-90 transition">
+            + Create Mock Test
+          </button>
+          <button onClick={() => setShowStudentForm(true)} className="bg-white/10 border border-white/20 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-white/20 transition">
+            + Add Student
+          </button>
+          <Link href="/teacher/students" className="bg-white/10 border border-white/20 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-white/20 transition">
             Manage Students
           </Link>
         </div>
 
-        <h2 className="font-semibold text-lg mb-3">Your Mock Tests</h2>
         {loading ? (
-          <p className="text-gray-500">Loading...</p>
+          <div className="text-center py-20">
+            <div className="inline-block w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin mb-3"></div>
+            <p className="text-white/50">Loading your tests...</p>
+          </div>
         ) : mocks.length === 0 ? (
-          <p className="text-gray-500">No mock tests yet. Create one to get started.</p>
+          <div className="text-center py-20 border border-dashed border-white/20 rounded-2xl">
+            <p className="text-white/50 mb-4">No mock tests yet.</p>
+            <button onClick={() => setShowMockForm(true)} className="bg-gold text-navy px-5 py-2.5 rounded-lg font-semibold">
+              Create your first test
+            </button>
+          </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {mocks.map((m) => (
-              <div key={m.id} className="card">
-                <div className="flex justify-between items-start">
+              <div key={m.id} className="bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl p-5 hover:bg-white/15 transition">
+                <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-semibold">{m.title}</h3>
-                    <p className="text-sm text-gray-500">{m.exam_name}</p>
+                    <h3 className="font-semibold text-white">{m.title}</h3>
+                    <p className="text-sm text-white/50">{m.exam_name}</p>
                   </div>
-                  <span className="text-xs bg-blue-50 text-navy px-2 py-1 rounded">{m.duration_minutes} min</span>
+                  <span className="text-xs bg-gold/20 text-gold px-2 py-1 rounded-lg">{m.duration_minutes} min</span>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">Total Marks: {m.total_marks}</p>
-                <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-700 break-all">
-                  <strong>Link:</strong> {typeof window !== "undefined" ? window.location.origin : ""}/exam/{m.id}<br/>
-                  <strong>Password:</strong> {m.access_password}
+
+                <p className="text-sm text-white/60 mb-3">Total Marks: {m.total_marks}</p>
+
+                <div className="bg-black/20 rounded-xl p-3 text-xs text-white/60 break-all mb-4">
+                  <p><span className="text-white/40">Link:</span> {typeof window !== "undefined" ? window.location.origin : ""}/exam/{m.id}</p>
+                  <p className="mt-1"><span className="text-white/40">Password:</span> <span className="text-gold font-mono">{m.access_password}</span></p>
                 </div>
-                <div className="mt-3 flex gap-3 items-center flex-wrap">
-                  <Link href={"/teacher/mocks/" + m.id} className="text-sm text-navy underline">Manage Questions</Link>
-                  <Link href={"/teacher/mocks/" + m.id + "/leaderboard"} className="text-sm text-navy underline">Leaderboard</Link>
-                  <button
-                    onClick={() => handleDelete(m.id, m.title)}
-                    className="text-sm text-red-600 underline ml-auto"
-                  >
-                    Delete
-                  </button>
+
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <Link href={"/teacher/mocks/" + m.id} className="text-gold hover:underline">Questions</Link>
+                  <Link href={"/teacher/mocks/" + m.id + "/leaderboard"} className="text-white/60 hover:text-white transition">Leaderboard</Link>
+                  <button onClick={() => setEditingMock(m)} className="text-white/60 hover:text-white transition">Edit</button>
+                  <button onClick={() => handleDelete(m.id)} className="text-red-400 hover:text-red-300 transition ml-auto">Delete</button>
                 </div>
               </div>
             ))}
@@ -104,6 +129,108 @@ export default function TeacherDashboard() {
 
       {showMockForm && <CreateMockModal onClose={() => setShowMockForm(false)} onCreated={loadMocks} />}
       {showStudentForm && <AddStudentModal mocks={mocks} onClose={() => setShowStudentForm(false)} />}
+      {editingMock && <EditMockModal mock={editingMock} onClose={() => setEditingMock(null)} onSaved={loadMocks} />}
+    </div>
+  );
+}
+
+function EditMockModal({ mock, onClose, onSaved }: { mock: Mock; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    title: mock.title,
+    exam_name: mock.exam_name || "",
+    duration_minutes: mock.duration_minutes,
+    negative_marking: mock.negative_marking || 0,
+    passing_marks: mock.passing_marks || 0,
+    access_password: mock.access_password,
+    instructions: mock.instructions || "",
+    show_result_immediately: mock.show_result_immediately !== false,
+    show_correct_answers: mock.show_correct_answers !== false,
+    leaderboard_enabled: mock.leaderboard_enabled !== false,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    const res = await fetch("/api/mocks/" + mock.id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    setSaving(false);
+    if (!res.ok) { setError(data.error || "Failed to save"); return; }
+    onSaved();
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-white/20 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h2 className="font-semibold text-white text-lg mb-4">Edit Mock Test</h2>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs text-white/50">Title</label>
+            <input className="input-field mt-1" required
+              value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-xs text-white/50">Exam Name</label>
+            <input className="input-field mt-1"
+              value={form.exam_name} onChange={(e) => setForm({ ...form, exam_name: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-white/50">Duration (min)</label>
+              <input type="number" className="input-field mt-1" required
+                value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
+            </div>
+            <div>
+              <label className="text-xs text-white/50">Negative Marking</label>
+              <input type="number" step="0.25" className="input-field mt-1"
+                value={form.negative_marking} onChange={(e) => setForm({ ...form, negative_marking: Number(e.target.value) })} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-white/50">Access Password</label>
+            <input className="input-field mt-1" required
+              value={form.access_password} onChange={(e) => setForm({ ...form, access_password: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-xs text-white/50">Instructions</label>
+            <textarea className="input-field mt-1"
+              value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} />
+          </div>
+          <div className="space-y-2 pt-1">
+            <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+              <input type="checkbox" checked={form.show_result_immediately}
+                onChange={(e) => setForm({ ...form, show_result_immediately: e.target.checked })} />
+              Show result immediately after submit
+            </label>
+            <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+              <input type="checkbox" checked={form.show_correct_answers}
+                onChange={(e) => setForm({ ...form, show_correct_answers: e.target.checked })} />
+              Show correct answers after submit
+            </label>
+            <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+              <input type="checkbox" checked={form.leaderboard_enabled}
+                onChange={(e) => setForm({ ...form, leaderboard_enabled: e.target.checked })} />
+              Enable leaderboard for this test
+            </label>
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 border border-white/20 text-white rounded-lg py-2 text-sm hover:bg-white/10 transition">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} className="flex-1 bg-gold text-navy rounded-lg py-2 text-sm font-semibold hover:opacity-90 transition">
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -133,9 +260,9 @@ function CreateMockModal({ onClose, onCreated }: { onClose: () => void; onCreate
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 className="font-semibold text-lg mb-4">Create Mock Test</h2>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-white/20 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h2 className="font-semibold text-white text-lg mb-4">Create Mock Test</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input className="input-field" placeholder="Mock Title" required
             value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -151,10 +278,14 @@ function CreateMockModal({ onClose, onCreated }: { onClose: () => void; onCreate
             value={form.access_password} onChange={(e) => setForm({ ...form, access_password: e.target.value })} />
           <textarea className="input-field" placeholder="Instructions"
             value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border rounded-lg py-2">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary flex-1">{saving ? "Creating..." : "Create"}</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-white/20 text-white rounded-lg py-2 text-sm hover:bg-white/10 transition">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} className="flex-1 bg-gold text-navy rounded-lg py-2 text-sm font-semibold hover:opacity-90 transition">
+              {saving ? "Creating..." : "Create"}
+            </button>
           </div>
         </form>
       </div>
@@ -186,9 +317,9 @@ function AddStudentModal({ mocks, onClose }: { mocks: Mock[]; onClose: () => voi
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 className="font-semibold text-lg mb-4">Add Student</h2>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-white/20 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h2 className="font-semibold text-white text-lg mb-4">Add Student</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input className="input-field" placeholder="Student Name" required
             value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -201,12 +332,11 @@ function AddStudentModal({ mocks, onClose }: { mocks: Mock[]; onClose: () => voi
           <input type="number" className="input-field" placeholder="Attempts Allowed"
             value={form.attempts_allowed} onChange={(e) => setForm({ ...form, attempts_allowed: Number(e.target.value) })} />
           <div>
-            <p className="text-sm text-gray-600 mb-1">Assign to tests:</p>
-            <div className="space-y-1 max-h-32 overflow-y-auto border rounded-lg p-2">
+            <p className="text-sm text-white/60 mb-1">Assign to tests:</p>
+            <div className="space-y-1 max-h-32 overflow-y-auto border border-white/10 rounded-lg p-2">
               {mocks.map((m) => (
-                <label key={m.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
+                <label key={m.id} className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                  <input type="checkbox"
                     checked={selectedMocks.includes(m.id)}
                     onChange={(e) => {
                       setSelectedMocks(e.target.checked
@@ -217,14 +347,18 @@ function AddStudentModal({ mocks, onClose }: { mocks: Mock[]; onClose: () => voi
                   {m.title}
                 </label>
               ))}
-              {mocks.length === 0 && <p className="text-xs text-gray-400">Create a mock test first.</p>}
+              {mocks.length === 0 && <p className="text-xs text-white/30">Create a mock test first.</p>}
             </div>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {success && <p className="text-sm text-green-400">{success}</p>}
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border rounded-lg py-2">Close</button>
-            <button type="submit" disabled={saving} className="btn-primary flex-1">{saving ? "Saving..." : "Add Student"}</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-white/20 text-white rounded-lg py-2 text-sm hover:bg-white/10 transition">
+              Close
+            </button>
+            <button type="submit" disabled={saving} className="flex-1 bg-gold text-navy rounded-lg py-2 text-sm font-semibold hover:opacity-90 transition">
+              {saving ? "Saving..." : "Add Student"}
+            </button>
           </div>
         </form>
       </div>
