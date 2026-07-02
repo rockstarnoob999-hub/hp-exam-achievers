@@ -52,7 +52,7 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-navy to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700">
       <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-sm bg-white/5">
         <div className="flex items-center gap-4">
           <div className="font-bold text-white">HP <span className="text-gold">Exam Achievers</span></div>

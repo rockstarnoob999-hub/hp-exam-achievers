@@ -108,7 +108,7 @@ export default function ResultPage() {
           >
             Share on WhatsApp
           </button>
-          {mock?.leaderboard_enabled && (
+          
             <Link
               href={"/leaderboard/" + mock.id}
               className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-lg text-sm hover:bg-white/20 transition"

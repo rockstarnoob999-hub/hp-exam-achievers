@@ -104,7 +104,7 @@ export default function ExamPage() {
 
   if (phase === "password") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-navy to-slate-800 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 flex items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-6">
             <div className="font-bold text-white text-xl mb-1">HP <span className="text-gold">Exam Achievers</span></div>
@@ -143,7 +143,7 @@ export default function ExamPage() {
 
   if (phase === "submitting") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-navy to-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-white/50">Submitting your test...</p>
@@ -158,7 +158,7 @@ export default function ExamPage() {
   const answeredCount = Object.values(responses).filter((r) => r.selected).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-navy to-slate-800 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 flex flex-col">
       <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between backdrop-blur-sm bg-white/5">
         <div className="font-semibold text-white text-sm">{mock?.title}</div>
         <div className="flex items-center gap-4 text-sm">
