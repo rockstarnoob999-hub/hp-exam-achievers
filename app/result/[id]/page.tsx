@@ -56,16 +56,14 @@ export default function ResultPage() {
     ? "Keep going! Focus on your weak areas and try again."
     : "Do not give up! Every attempt makes you stronger.";
 
-  const percentileMessage = percentile !== null
+  const percentileMessage = percentile !== null && percentile !== undefined
     ? percentile >= 90
-      ? "You scored better than " + percentile + "% of students in Himachal Pradesh who took this test. Outstanding!"
+      ? "You scored better than " + percentile + "% of students in Himachal Pradesh. Outstanding!"
       : percentile >= 70
       ? "You scored better than " + percentile + "% of students in Himachal Pradesh. Great performance!"
       : percentile >= 50
       ? "You scored better than " + percentile + "% of students in Himachal Pradesh. Keep pushing!"
-      : percentile >= 25
-      ? "You scored better than " + percentile + "% of students in Himachal Pradesh. There is room to grow!"
-      : "You scored better than " + percentile + "% of students so far. Do not give up - every attempt counts!"
+      : "You scored better than " + percentile + "% of students so far. Keep working hard!"
     : null;
 
   function handlePrint() {
@@ -73,17 +71,20 @@ export default function ResultPage() {
   }
 
   function handleWhatsApp() {
-    const text = "I scored " + attempt.score + " out of " + mock?.total_marks +
+    const text =
+      "I scored " + attempt.score + " out of " + mock?.total_marks +
       " (" + percentage + "%) in " + mock?.title +
       " on HP Exam Achievers!" +
-      (percentile !== null ? " I scored better than " + percentile + "% of students in HP!" : "") +
+      (percentile !== null && percentile !== undefined
+        ? " I scored better than " + percentile + "% of students in HP!"
+        : "") +
       " Check it out at " + window.location.origin;
     window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm no-print">
         <div className="flex items-center gap-4">
           <div className="font-bold text-navy">HP <span className="text-gold">Exam Achievers</span></div>
           <Link href="/" className="text-xs text-gray-400 hover:text-navy transition">Home</Link>
@@ -92,9 +93,24 @@ export default function ResultPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8" id="result-print-area">
+
+        <div className="print-header hidden">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-navy">
+            <div>
+              <h1 className="text-2xl font-bold text-navy">HP Exam Achievers</h1>
+              <p className="text-sm text-gray-500">Official Result Card</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Date: {new Date().toLocaleDateString()}</p>
+              <p className="text-sm text-gray-500">Attempt #{attempt.attempt_number}</p>
+            </div>
+          </div>
+        </div>
+
         <div className="text-center mb-6">
           <h1 className="font-display font-semibold text-2xl text-navy mb-1">{mock?.title}</h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-sm">{mock?.exam_name}</p>
+          <p className="text-gray-400 text-sm mt-1">
             Attempt {attempt.attempt_number}
             {attempt.status === "auto_submitted" ? " - Auto submitted" : " - Submitted"}
           </p>
@@ -105,7 +121,9 @@ export default function ResultPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-2xl px-6 py-4 mb-6 text-center">
             <p className="text-navy font-semibold text-sm">{percentileMessage}</p>
             {totalStudents > 1 && (
-              <p className="text-gray-400 text-xs mt-1">Based on {totalStudents} students who have taken this test</p>
+              <p className="text-gray-400 text-xs mt-1">
+                Based on {totalStudents} students who have taken this test
+              </p>
             )}
           </div>
         )}
@@ -121,16 +139,16 @@ export default function ResultPage() {
           <StatCard label="Attempt" value={"#" + attempt.attempt_number} />
         </div>
 
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div className="flex flex-wrap gap-3 mb-8 no-print">
           <button
             onClick={handlePrint}
-            className="btn-primary text-sm"
+            className="bg-navy text-white font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-blue-900 transition flex items-center gap-2"
           >
-            Download / Print Result
+            Download Result PDF
           </button>
           <button
             onClick={handleWhatsApp}
-            className="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg text-sm hover:bg-green-500 transition"
+            className="bg-green-600 text-white font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-green-500 transition flex items-center gap-2"
           >
             Share on WhatsApp
           </button>
@@ -181,9 +199,68 @@ export default function ResultPage() {
 
       <style>{`
         @media print {
-          header, button { display: none !important; }
-          body { background: white !important; }
-          #result-print-area { padding: 20px; }
+          .no-print { display: none !important; }
+          .print-header { display: block !important; }
+          .hidden { display: block !important; }
+          body { background: white !important; font-family: Arial, sans-serif; }
+          #result-print-area { padding: 20px; max-width: 100%; }
+
+          .bg-blue-50 { background-color: #eff6ff !important; border: 1px solid #bfdbfe !important; }
+          .bg-green-50 { background-color: #f0fdf4 !important; }
+          .bg-red-50 { background-color: #fef2f2 !important; }
+          .bg-white { background-color: white !important; }
+
+          .rounded-xl, .rounded-2xl, .rounded-lg { border-radius: 8px !important; }
+          .shadow-sm { box-shadow: none !important; }
+          .border { border: 1px solid #e5e7eb !important; }
+
+          .grid { display: grid !important; }
+          .grid-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
+          .md\\:grid-cols-4 { grid-template-columns: repeat(4, 1fr) !important; }
+          .gap-3 { gap: 8px !important; }
+
+          .text-navy { color: #0B2545 !important; }
+          .text-gold { color: #D4AF37 !important; }
+          .text-green-700 { color: #15803d !important; }
+          .text-red-600 { color: #dc2626 !important; }
+          .text-gray-400 { color: #9ca3af !important; }
+          .text-gray-500 { color: #6b7280 !important; }
+
+          .bg-gold\\/10 { background-color: #fdf9e7 !important; border: 1px solid #D4AF37 !important; }
+
+          .space-y-3 > * + * { margin-top: 12px !important; }
+          .mb-6 { margin-bottom: 16px !important; }
+          .mb-3 { margin-bottom: 8px !important; }
+          .p-5 { padding: 16px !important; }
+          .p-4 { padding: 12px !important; }
+          .px-6 { padding-left: 16px !important; padding-right: 16px !important; }
+          .py-4 { padding-top: 12px !important; padding-bottom: 12px !important; }
+          .px-3 { padding-left: 8px !important; padding-right: 8px !important; }
+          .py-1\\.5 { padding-top: 4px !important; padding-bottom: 4px !important; }
+
+          .font-display { font-family: Arial, sans-serif !important; font-weight: bold !important; }
+          .text-2xl { font-size: 20px !important; }
+          .text-lg { font-size: 16px !important; }
+          .text-sm { font-size: 13px !important; }
+          .text-xs { font-size: 11px !important; }
+
+          .text-center { text-align: center !important; }
+          .font-semibold { font-weight: 600 !important; }
+          .font-medium { font-weight: 500 !important; }
+          .font-bold { font-weight: 700 !important; }
+
+          .border-b-2 { border-bottom: 2px solid #0B2545 !important; }
+          .pb-4 { padding-bottom: 16px !important; }
+          .mb-6 { margin-bottom: 24px !important; }
+          .mt-1 { margin-top: 4px !important; }
+          .mt-2 { margin-top: 8px !important; }
+          .mt-3 { margin-top: 12px !important; }
+          .pt-2 { padding-top: 8px !important; }
+
+          .flex { display: flex !important; }
+          .items-center { align-items: center !important; }
+          .justify-between { justify-content: space-between !important; }
+          .text-right { text-align: right !important; }
         }
       `}</style>
     </div>
@@ -197,9 +274,17 @@ function StatCard({ label, value, color, highlight }: {
   highlight?: boolean;
 }) {
   return (
-    <div className={"rounded-xl p-4 text-center border " + (highlight ? "bg-gold/10 border-gold/30" : "bg-white border-gray-200 shadow-sm")}>
+    <div className={
+      "rounded-xl p-4 text-center border " +
+      (highlight ? "bg-gold/10 border-gold/30" : "bg-white border-gray-200 shadow-sm")
+    }>
       <p className="text-xs text-gray-400 mb-1">{label}</p>
-      <p className={"font-display font-semibold text-lg " + (highlight ? "text-gold" : color || "text-navy")}>{value}</p>
+      <p className={
+        "font-display font-semibold text-lg " +
+        (highlight ? "text-gold" : color || "text-navy")
+      }>
+        {value}
+      </p>
     </div>
   );
 }
