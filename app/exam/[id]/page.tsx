@@ -7,11 +7,16 @@ import Link from "next/link";
 type Question = {
   id: string;
   question_text: string;
+  question_text_hi: string;
   image_url?: string;
   option_a: string;
   option_b: string;
   option_c: string;
   option_d: string;
+  option_a_hi: string;
+  option_b_hi: string;
+  option_c_hi: string;
+  option_d_hi: string;
   marks: number;
 };
 
@@ -22,6 +27,7 @@ export default function ExamPage() {
   const [phase, setPhase] = useState<"password" | "exam" | "submitting">("password");
   const [accessPassword, setAccessPassword] = useState("");
   const [error, setError] = useState("");
+  const [hindi, setHindi] = useState(false);
 
   const [mock, setMock] = useState<any>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -52,9 +58,7 @@ export default function ExamPage() {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error); return; }
-
     setAttemptId(data.attempt.id);
-
     const qRes = await fetch("/api/mocks/" + id);
     const qData = await qRes.json();
     setQuestions(qData.questions || []);
@@ -108,8 +112,10 @@ export default function ExamPage() {
 
   if (phase === "password") {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4"
-        style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}>
+      <div
+        className="min-h-screen flex items-center justify-center px-4"
+        style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}
+      >
         <div className="w-full max-w-sm">
           <div className="text-center mb-6">
             <div className="font-bold text-navy text-xl mb-1">
@@ -150,8 +156,10 @@ export default function ExamPage() {
 
   if (phase === "submitting") {
     return (
-      <div className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}
+      >
         <div className="text-center">
           <div className="inline-block w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-gray-400">Submitting your test...</p>
@@ -164,23 +172,32 @@ export default function ExamPage() {
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
   const answeredCount = Object.values(responses).filter((r) => r.selected).length;
+  const hasHindi = q && (q.question_text_hi || q.option_a_hi);
+
+  function getText(en: string, hi: string) {
+    return hindi && hi ? hi : en;
+  }
 
   return (
-    <div className="min-h-screen flex flex-col"
-      style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%)" }}
+    >
       <header className="bg-white/90 backdrop-blur-sm border-b border-blue-100 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="font-semibold text-navy text-sm">{mock?.title}</div>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-3 text-sm">
           <span className="text-gray-400">Q{current + 1}/{questions.length}</span>
-          <span className={
-            "font-mono px-3 py-1 rounded-lg font-semibold " + (
-              secondsLeft < 60
-                ? "bg-red-100 text-red-600 border border-red-200"
-                : secondsLeft < 300
-                ? "bg-yellow-50 text-yellow-600 border border-yellow-200"
-                : "bg-blue-50 text-navy border border-blue-100"
-            )
-          }>
+          <span
+            className={
+              "font-mono px-3 py-1 rounded-lg font-semibold " + (
+                secondsLeft < 60
+                  ? "bg-red-100 text-red-600 border border-red-200"
+                  : secondsLeft < 300
+                  ? "bg-yellow-50 text-yellow-600 border border-yellow-200"
+                  : "bg-blue-50 text-navy border border-blue-100"
+              )
+            }
+          >
             {mins}:{secs.toString().padStart(2, "0")}
           </span>
         </div>
@@ -191,7 +208,26 @@ export default function ExamPage() {
           {q && (
             <>
               <div className="bg-white/90 border border-blue-100 rounded-xl p-5 mb-4 shadow-sm">
-                <p className="font-medium text-navy">{current + 1}. {q.question_text}</p>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs text-gray-400">Question {current + 1} of {questions.length}</span>
+                  {hasHindi && (
+                    <button
+                      onClick={() => setHindi(!hindi)}
+                      className={
+                        "text-xs px-3 py-1 rounded-lg border font-medium transition " + (
+                          hindi
+                            ? "bg-orange-50 border-orange-300 text-orange-600"
+                            : "bg-gray-50 border-gray-200 text-gray-500 hover:border-navy hover:text-navy"
+                        )
+                      }
+                    >
+                      {hindi ? "Hindi" : "English"}
+                    </button>
+                  )}
+                </div>
+                <p className="font-medium text-navy">
+                  {current + 1}. {getText(q.question_text, q.question_text_hi)}
+                </p>
                 {q.image_url && (
                   <img src={q.image_url} alt="question" className="max-w-full rounded-lg mt-3" />
                 )}
@@ -216,7 +252,12 @@ export default function ExamPage() {
                       onChange={() => saveAnswer(q.id, opt)}
                       className="accent-navy"
                     />
-                    <span>{(q as any)["option_" + opt]}</span>
+                    <span>
+                      {opt.toUpperCase()}. {getText(
+                        (q as any)["option_" + opt],
+                        (q as any)["option_" + opt + "_hi"]
+                      )}
+                    </span>
                   </label>
                 ))}
               </div>
