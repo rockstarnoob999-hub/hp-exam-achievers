@@ -38,7 +38,7 @@ export default function ResultPage() {
     );
   }
 
-  const { attempt, mock, review, rank } = data;
+  const { attempt, mock, review, rank, totalStudents, percentile } = data;
 
   const accuracy = attempt.correct_count + attempt.wrong_count > 0
     ? ((attempt.correct_count / (attempt.correct_count + attempt.wrong_count)) * 100).toFixed(1)
@@ -56,12 +56,28 @@ export default function ResultPage() {
     ? "Keep going! Focus on your weak areas and try again."
     : "Do not give up! Every attempt makes you stronger.";
 
+  const percentileMessage = percentile !== null
+    ? percentile >= 90
+      ? "You scored better than " + percentile + "% of students in Himachal Pradesh who took this test. Outstanding!"
+      : percentile >= 70
+      ? "You scored better than " + percentile + "% of students in Himachal Pradesh. Great performance!"
+      : percentile >= 50
+      ? "You scored better than " + percentile + "% of students in Himachal Pradesh. Keep pushing!"
+      : percentile >= 25
+      ? "You scored better than " + percentile + "% of students in Himachal Pradesh. There is room to grow!"
+      : "You scored better than " + percentile + "% of students so far. Do not give up - every attempt counts!"
+    : null;
+
   function handlePrint() {
     window.print();
   }
 
   function handleWhatsApp() {
-    const text = "I scored " + attempt.score + " out of " + mock?.total_marks + " (" + percentage + "%) in " + mock?.title + " on HP Exam Achievers! Check it out at " + window.location.origin;
+    const text = "I scored " + attempt.score + " out of " + mock?.total_marks +
+      " (" + percentage + "%) in " + mock?.title +
+      " on HP Exam Achievers!" +
+      (percentile !== null ? " I scored better than " + percentile + "% of students in HP!" : "") +
+      " Check it out at " + window.location.origin;
     window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
   }
 
@@ -76,14 +92,23 @@ export default function ResultPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8" id="result-print-area">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h1 className="font-display font-semibold text-2xl text-navy mb-1">{mock?.title}</h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-400 text-sm">
             Attempt {attempt.attempt_number}
             {attempt.status === "auto_submitted" ? " - Auto submitted" : " - Submitted"}
           </p>
-          <p className="text-gold mt-3 text-sm font-medium">{motivational}</p>
+          <p className="text-gold mt-2 text-sm font-medium">{motivational}</p>
         </div>
+
+        {percentileMessage && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-6 py-4 mb-6 text-center">
+            <p className="text-navy font-semibold text-sm">{percentileMessage}</p>
+            {totalStudents > 1 && (
+              <p className="text-gray-400 text-xs mt-1">Based on {totalStudents} students who have taken this test</p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="Score" value={attempt.score + " / " + mock?.total_marks} highlight />
