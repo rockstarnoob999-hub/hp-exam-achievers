@@ -3,11 +3,15 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/auth";
 
 // PUT /api/attempts/[id] -> autosave an answer. body: { question_id, selected_option, marked_for_review }
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const session = getSession(req);
   if (!session || session.role !== "student") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: attempt } = await supabaseAdmin.from("attempts").select("*").eq("id", params.id).single();
+  const { data: attempt } = await supabaseAdmin.from("attempts").select("*").eq("id", id).single();
   if (!attempt || attempt.student_id !== session.id) {
     return NextResponse.json({ error: "Attempt not found" }, { status: 404 });
   }
@@ -22,7 +26,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     .from("answers")
     .upsert(
       {
-        attempt_id: params.id,
+        id,
         question_id,
         selected_option: selected_option ?? null,
         marked_for_review: !!marked_for_review,

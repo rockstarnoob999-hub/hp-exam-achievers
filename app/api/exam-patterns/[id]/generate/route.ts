@@ -3,7 +3,12 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/auth";
 
 // POST /api/exam-patterns/[id]/generate -> generate a mock from a pattern
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
   const session = getSession(req);
   if (!session || session.role !== "teacher") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,19 +18,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { title, access_password, start_date, end_date, instructions } = body;
 
   if (!title || !access_password) {
-    return NextResponse.json({ error: "Title and access password are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Title and access password are required" },
+      { status: 400 }
+    );
   }
 
   // Get pattern with sections
   const { data: pattern, error: patternError } = await supabaseAdmin
     .from("exam_patterns")
     .select("*, pattern_sections(*)")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("teacher_id", session.id)
     .single();
 
   if (patternError || !pattern) {
-    return NextResponse.json({ error: "Pattern not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Pattern not found" },
+      { status: 404 }
+    );
   }
 
   const sections = (pattern.pattern_sections || []).sort(
@@ -33,7 +44,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   );
 
   if (sections.length === 0) {
-    return NextResponse.json({ error: "Pattern has no sections" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Pattern has no sections" },
+      { status: 400 }
+    );
   }
 
   // Calculate total marks
@@ -65,7 +79,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .select()
     .single();
 
-  if (mockError) return NextResponse.json({ error: mockError.message }, { status: 500 });
+  if (mockError) {
+    return NextResponse.json(
+      { error: mockError.message },
+      { status: 500 }
+    );
+  }
 
   // For each section pick random questions from question bank
   let orderIndex = 0;
@@ -82,20 +101,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const pool = available || [];
 
     if (pool.length === 0) {
-      warnings.push("No questions found for subject: " + section.subject + ". Skipped.");
+      warnings.push(
+        "No questions found for subject: " + section.subject + ". Skipped."
+      );
       continue;
     }
 
     if (pool.length < section.question_count) {
       warnings.push(
-        "Only " + pool.length + " questions available for " + section.subject +
-        " (needed " + section.question_count + "). Using all available."
+        "Only " +
+          pool.length +
+          " questions available for " +
+          section.subject +
+          " (needed " +
+          section.question_count +
+          "). Using all available."
       );
     }
 
     // Shuffle and pick
     const shuffled = pool.sort(() => Math.random() - 0.5);
-    const picked = shuffled.slice(0, Math.min(section.question_count, pool.length));
+    const picked = shuffled.slice(
+      0,
+      Math.min(section.question_count, pool.length)
+    );
 
     const questionRows = picked.map((q: any) => ({
       mock_id: mock.id,
@@ -121,7 +150,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .select();
 
     if (insertError) {
-      warnings.push("Error inserting questions for " + section.subject + ": " + insertError.message);
+      warnings.push(
+        "Error inserting questions for " +
+          section.subject +
+          ": " +
+          insertError.message
+      );
     } else {
       allInsertedQuestions.push(...(inserted || []));
     }
@@ -129,8 +163,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Update total marks based on actual questions inserted
   const actualTotal = allInsertedQuestions.reduce(
-    (sum, q) => sum + Number(q.marks), 0
+    (sum, q) => sum + Number(q.marks),
+    0
   );
+
   await supabaseAdmin
     .from("mocks")
     .update({ total_marks: actualTotal })

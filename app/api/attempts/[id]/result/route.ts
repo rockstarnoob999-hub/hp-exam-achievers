@@ -2,14 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/auth";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const session = getSession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: attempt } = await supabaseAdmin
     .from("attempts")
     .select("*")
-    .eq("id", params.id)
+   .eq("id", id)
     .single();
   if (!attempt) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (session.role === "student" && attempt.student_id !== session.id) {
@@ -31,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { data: answers } = await supabaseAdmin
     .from("answers")
     .select("*")
-    .eq("attempt_id", params.id);
+    .eq("attempt_id", id)
 
   const answerMap = new Map((answers || []).map((a: any) => [a.question_id, a]));
 
