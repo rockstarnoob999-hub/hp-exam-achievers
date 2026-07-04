@@ -1,28 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const SUBJECTS = [
-  "Computer",
-  "Maths",
-  "English",
-  "Reasoning",
-  "HP GK",
-  "Indian GK",
-  "Hindi",
-  "Current Affairs",
-  "Science",
-  "History",
-  "Geography",
-  "Polity",
+  // HP Exams
+  "Computer", "Maths", "English", "Reasoning",
+  "HP GK", "Indian GK", "Hindi", "Current Affairs",
+  "Science", "History", "Geography", "Polity",
+  // JEE
+  "Physics", "Chemistry", "Mathematics",
+  // NEET
+  "Biology (Botany)", "Biology (Zoology)",
+  // Banking
+  "Quantitative Aptitude", "General Awareness",
+  "Computer Aptitude", "Financial Awareness",
+  // Other
+  "Verbal Ability", "Data Interpretation",
+  "Mental Ability", "Logical Reasoning",
 ];
+
+const CATEGORIES = [
+  "HP Exams", "JEE", "NEET", "Banking", "Other"
+];
+
+const SUBJECT_CATEGORY: Record<string, string> = {
+  "Computer": "HP Exams", "Maths": "HP Exams", "English": "HP Exams",
+  "Reasoning": "HP Exams", "HP GK": "HP Exams", "Indian GK": "HP Exams",
+  "Hindi": "HP Exams", "Current Affairs": "HP Exams", "Science": "HP Exams",
+  "History": "HP Exams", "Geography": "HP Exams", "Polity": "HP Exams",
+  "Physics": "JEE", "Chemistry": "JEE", "Mathematics": "JEE",
+  "Biology (Botany)": "NEET", "Biology (Zoology)": "NEET",
+  "Quantitative Aptitude": "Banking", "General Awareness": "Banking",
+  "Computer Aptitude": "Banking", "Financial Awareness": "Banking",
+  "Verbal Ability": "Other", "Data Interpretation": "Other",
+  "Mental Ability": "Other", "Logical Reasoning": "Other",
+};
 
 type Question = {
   id: string;
   subject: string;
   question_text: string;
+  image_url: string | null;
   option_a: string;
   option_b: string;
   option_c: string;
@@ -37,15 +57,20 @@ export default function QuestionBankPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showHindi, setShowHindi] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const emptyForm = {
     subject: SUBJECTS[0],
     question_text: "", question_text_hi: "",
+    image_url: "",
     option_a: "", option_b: "", option_c: "", option_d: "",
     option_a_hi: "", option_b_hi: "", option_c_hi: "", option_d_hi: "",
     correct_option: "a", marks: 1,
@@ -55,7 +80,8 @@ export default function QuestionBankPage() {
   const [form, setForm] = useState(emptyForm);
 
   async function load(subject?: string) {
-    const url = "/api/question-bank" + (subject && subject !== "All" ? "?subject=" + encodeURIComponent(subject) : "");
+    const url = "/api/question-bank" +
+      (subject && subject !== "All" ? "?subject=" + encodeURIComponent(subject) : "");
     const res = await fetch(url);
     if (res.status === 401) { router.push("/login?role=teacher"); return; }
     const data = await res.json();
@@ -64,6 +90,18 @@ export default function QuestionBankPage() {
   }
 
   useEffect(() => { load(selectedSubject); }, [selectedSubject]);
+
+  async function handleImageUpload(file: File) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    setUploading(false);
+    if (!res.ok) { setError(data.error); return; }
+    setForm((prev) => ({ ...prev, image_url: data.url }));
+    setSuccess("Image uploaded successfully.");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,17 +117,24 @@ export default function QuestionBankPage() {
     if (!res.ok) { setError(data.error); return; }
     setSuccess("Question added to bank.");
     setForm(emptyForm);
+    if (fileRef.current) fileRef.current.value = "";
     load(selectedSubject);
   }
 
-  const grouped = SUBJECTS.map((s) => ({
+  const filteredByCategory = selectedCategory === "All"
+    ? SUBJECTS
+    : SUBJECTS.filter((s) => SUBJECT_CATEGORY[s] === selectedCategory);
+
+  const grouped = filteredByCategory.map((s) => ({
     subject: s,
     count: questions.filter((q) => q.subject === s).length,
   }));
 
-  const filtered = selectedSubject === "All"
-    ? questions
-    : questions.filter((q) => q.subject === selectedSubject);
+  const filtered = questions.filter((q) => {
+    const matchSubject = selectedSubject === "All" || q.subject === selectedSubject;
+    const matchCategory = selectedCategory === "All" || SUBJECT_CATEGORY[q.subject] === selectedCategory;
+    return matchSubject && matchCategory;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,36 +142,53 @@ export default function QuestionBankPage() {
         <div className="flex items-center gap-4">
           <Link href="/teacher/dashboard" className="text-sm text-gray-400 hover:text-navy transition">Back</Link>
           <div className="font-semibold text-navy">Question Bank</div>
+          <span className="text-xs bg-blue-50 text-navy px-2 py-1 rounded-lg">{questions.length} questions</span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={() => setShowHindi(!showHindi)}
             className={"px-3 py-1.5 rounded-lg text-sm border transition " + (showHindi ? "bg-orange-50 border-orange-300 text-orange-600" : "border-gray-200 text-gray-500")}
           >
             {showHindi ? "Hindi ON" : "Add Hindi"}
           </button>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="btn-primary text-sm"
-          >
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
             {showForm ? "Hide Form" : "+ Add Question"}
           </button>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6">
+
+        <div className="flex flex-wrap gap-2 mb-3">
+          <button
+            onClick={() => { setSelectedCategory("All"); setSelectedSubject("All"); }}
+            className={"px-3 py-1.5 rounded-lg text-xs font-medium border transition " + (selectedCategory === "All" ? "bg-navy text-white border-navy" : "bg-white border-gray-200 text-gray-600")}
+          >
+            All Exams
+          </button>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => { setSelectedCategory(cat); setSelectedSubject("All"); }}
+              className={"px-3 py-1.5 rounded-lg text-xs font-medium border transition " + (selectedCategory === cat ? "bg-navy text-white border-navy" : "bg-white border-gray-200 text-gray-600")}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => setSelectedSubject("All")}
-            className={"px-3 py-2 rounded-lg text-xs font-medium border transition " + (selectedSubject === "All" ? "bg-navy text-white border-navy" : "bg-white border-gray-200 text-gray-600 hover:border-navy")}
+            className={"px-3 py-1.5 rounded-lg text-xs font-medium border transition " + (selectedSubject === "All" ? "bg-blue-600 text-white border-blue-600" : "bg-white border-gray-200 text-gray-600")}
           >
-            All ({questions.length})
+            All Subjects ({filtered.length})
           </button>
           {grouped.map((g) => (
             <button
               key={g.subject}
               onClick={() => setSelectedSubject(g.subject)}
-              className={"px-3 py-2 rounded-lg text-xs font-medium border transition " + (selectedSubject === g.subject ? "bg-navy text-white border-navy" : "bg-white border-gray-200 text-gray-600 hover:border-navy")}
+              className={"px-3 py-1.5 rounded-lg text-xs font-medium border transition " + (selectedSubject === g.subject ? "bg-blue-600 text-white border-blue-600" : "bg-white border-gray-200 text-gray-600")}
             >
               {g.subject} ({g.count})
             </button>
@@ -142,8 +204,12 @@ export default function QuestionBankPage() {
                   <label className="text-xs text-gray-400">Subject</label>
                   <select className="input-field mt-1" value={form.subject}
                     onChange={(e) => setForm({ ...form, subject: e.target.value })}>
-                    {SUBJECTS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                    {CATEGORIES.map((cat) => (
+                      <optgroup key={cat} label={cat}>
+                        {SUBJECTS.filter((s) => SUBJECT_CATEGORY[s] === cat).map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </div>
@@ -160,18 +226,86 @@ export default function QuestionBankPage() {
 
               <div>
                 <label className="text-xs text-gray-400">Question (English)</label>
-                <textarea className="input-field mt-1" required
+                <textarea className="input-field mt-1" required rows={3}
                   value={form.question_text}
                   onChange={(e) => setForm({ ...form, question_text: e.target.value })} />
               </div>
+
               {showHindi && (
                 <div>
                   <label className="text-xs text-orange-500">Question (Hindi)</label>
-                  <textarea className="input-field mt-1"
+                  <textarea className="input-field mt-1" rows={2}
                     value={form.question_text_hi}
                     onChange={(e) => setForm({ ...form, question_text_hi: e.target.value })} />
                 </div>
               )}
+
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">
+                  Diagram / Image (optional)
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setImageMode("upload")}
+                    className={"px-3 py-1 rounded text-xs border " + (imageMode === "upload" ? "bg-navy text-white border-navy" : "border-gray-200 text-gray-500")}
+                  >
+                    Upload from computer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageMode("url")}
+                    className={"px-3 py-1 rounded text-xs border " + (imageMode === "url" ? "bg-navy text-white border-navy" : "border-gray-200 text-gray-500")}
+                  >
+                    Paste image URL
+                  </button>
+                </div>
+
+                {imageMode === "upload" ? (
+                  <div>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      className="input-field"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                    />
+                    {uploading && <p className="text-xs text-blue-600 mt-1">Uploading image...</p>}
+                    {form.image_url && !uploading && (
+                      <div className="mt-2">
+                        <img src={form.image_url} alt="preview" className="max-h-32 rounded-lg border border-gray-200" />
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, image_url: "" })}
+                          className="text-xs text-red-500 mt-1 underline"
+                        >
+                          Remove image
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      className="input-field"
+                      placeholder="Paste image URL (Google Drive, Imgur, etc)"
+                      value={form.image_url}
+                      onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                    />
+                    {form.image_url && (
+                      <div className="mt-2">
+                        <img src={form.image_url} alt="preview" className="max-h-32 rounded-lg border border-gray-200" />
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">
+                      For Google Drive: open image, click Share, set to Anyone with link, copy the direct image URL.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {(["a", "b", "c", "d"] as const).map((opt) => (
                 <div key={opt}>
@@ -216,7 +350,7 @@ export default function QuestionBankPage() {
               {error && <p className="text-sm text-red-500">{error}</p>}
               {success && <p className="text-sm text-green-600">{success}</p>}
 
-              <button type="submit" disabled={saving} className="btn-primary w-full">
+              <button type="submit" disabled={saving || uploading} className="btn-primary w-full">
                 {saving ? "Adding..." : "Add to Question Bank"}
               </button>
             </form>
@@ -225,7 +359,9 @@ export default function QuestionBankPage() {
 
         <div className="space-y-2">
           {loading ? (
-            <p className="text-gray-400">Loading...</p>
+            <div className="text-center py-10">
+              <div className="inline-block w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"></div>
+            </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 bg-white border border-dashed border-gray-200 rounded-2xl">
               <p className="text-gray-400 mb-2">No questions in this subject yet.</p>
@@ -236,18 +372,24 @@ export default function QuestionBankPage() {
           ) : (
             filtered.map((q, i) => (
               <div key={q.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <span className="text-xs bg-blue-50 text-navy px-2 py-0.5 rounded font-medium">{q.subject}</span>
                       <span className={"text-xs px-2 py-0.5 rounded font-medium " + (
                         q.difficulty === "easy" ? "bg-green-50 text-green-700" :
                         q.difficulty === "hard" ? "bg-red-50 text-red-700" :
                         "bg-yellow-50 text-yellow-700"
                       )}>{q.difficulty}</span>
+                      {q.image_url && (
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">Has diagram</span>
+                      )}
                     </div>
-                    <p className="text-sm text-navy font-medium">{i + 1}. {q.question_text}</p>
-                    <div className="grid grid-cols-2 gap-1 mt-2">
+                    <p className="text-sm text-navy font-medium mb-2">{i + 1}. {q.question_text}</p>
+                    {q.image_url && (
+                      <img src={q.image_url} alt="diagram" className="max-h-40 rounded-lg border border-gray-200 mb-2" />
+                    )}
+                    <div className="grid grid-cols-2 gap-1">
                       {["a", "b", "c", "d"].map((opt) => (
                         <p key={opt} className={"text-xs px-2 py-1 rounded " + (q.correct_option === opt ? "bg-green-50 text-green-700 font-medium" : "text-gray-500")}>
                           {opt.toUpperCase()}. {(q as any)["option_" + opt]}

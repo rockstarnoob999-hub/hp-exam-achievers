@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/auth";
 
-// GET /api/question-bank -> list all questions in bank for this teacher
 export async function GET(req: NextRequest) {
   const session = getSession(req);
   if (!session || session.role !== "teacher") {
@@ -25,7 +24,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ questions: data });
 }
 
-// POST /api/question-bank -> add a question to the bank
 export async function POST(req: NextRequest) {
   const session = getSession(req);
   if (!session || session.role !== "teacher") {
@@ -34,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const {
-    subject, question_text, question_text_hi,
+    subject, question_text, question_text_hi, image_url,
     option_a, option_b, option_c, option_d,
     option_a_hi, option_b_hi, option_c_hi, option_d_hi,
     correct_option, marks, explanation, difficulty,
@@ -48,13 +46,17 @@ export async function POST(req: NextRequest) {
     .from("question_bank")
     .insert({
       teacher_id: session.id,
-      subject, question_text, question_text_hi: question_text_hi || null,
+      subject,
+      question_text,
+      question_text_hi: question_text_hi || null,
+      image_url: image_url || null,
       option_a, option_b, option_c, option_d,
       option_a_hi: option_a_hi || null,
       option_b_hi: option_b_hi || null,
       option_c_hi: option_c_hi || null,
       option_d_hi: option_d_hi || null,
-      correct_option, marks: marks || 1,
+      correct_option,
+      marks: marks || 1,
       explanation: explanation || null,
       difficulty: difficulty || "medium",
     })
