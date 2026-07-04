@@ -73,16 +73,22 @@ export default function TeacherDashboard() {
         </div>
 
         <div className="flex flex-wrap gap-3 mb-8">
-          <button onClick={() => setShowMockForm(true)} className="btn-primary">
-            + Create Mock Test
-          </button>
-          <button onClick={() => setShowStudentForm(true)} className="btn-gold">
-            + Add Student
-          </button>
-          <Link href="/teacher/students" className="px-5 py-2.5 rounded-lg font-medium border border-navy text-navy hover:bg-navy hover:text-white transition">
-            Manage Students
-          </Link>
-        </div>
+  <button onClick={() => setShowMockForm(true)} className="btn-primary">
+    + Create Mock Test
+  </button>
+  <button onClick={() => setShowStudentForm(true)} className="btn-gold">
+    + Add Student
+  </button>
+  <Link href="/teacher/students" className="px-5 py-2.5 rounded-lg font-medium border border-navy text-navy hover:bg-navy hover:text-white transition">
+    Manage Students
+  </Link>
+  <Link href="/teacher/question-bank" className="px-5 py-2.5 rounded-lg font-medium border border-gold text-gold hover:bg-gold hover:text-navy transition">
+    Question Bank
+  </Link>
+  <Link href="/teacher/exam-patterns" className="px-5 py-2.5 rounded-lg font-medium bg-navy text-white hover:bg-blue-900 transition">
+    Exam Patterns
+  </Link>
+</div>
 
         {loading ? (
           <div className="text-center py-20">

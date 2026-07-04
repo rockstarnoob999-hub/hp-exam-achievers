@@ -1,0 +1,66 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import { getSession } from "@/lib/auth";
+
+// GET /api/question-bank -> list all questions in bank for this teacher
+export async function GET(req: NextRequest) {
+  const session = getSession(req);
+  if (!session || session.role !== "teacher") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const subject = searchParams.get("subject");
+
+  let query = supabaseAdmin
+    .from("question_bank")
+    .select("*")
+    .eq("teacher_id", session.id)
+    .order("created_at", { ascending: false });
+
+  if (subject) query = query.eq("subject", subject);
+
+  const { data, error } = await query;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ questions: data });
+}
+
+// POST /api/question-bank -> add a question to the bank
+export async function POST(req: NextRequest) {
+  const session = getSession(req);
+  if (!session || session.role !== "teacher") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const {
+    subject, question_text, question_text_hi,
+    option_a, option_b, option_c, option_d,
+    option_a_hi, option_b_hi, option_c_hi, option_d_hi,
+    correct_option, marks, explanation, difficulty,
+  } = body;
+
+  if (!subject || !question_text || !option_a || !option_b || !option_c || !option_d || !correct_option) {
+    return NextResponse.json({ error: "Subject and all English fields are required" }, { status: 400 });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("question_bank")
+    .insert({
+      teacher_id: session.id,
+      subject, question_text, question_text_hi: question_text_hi || null,
+      option_a, option_b, option_c, option_d,
+      option_a_hi: option_a_hi || null,
+      option_b_hi: option_b_hi || null,
+      option_c_hi: option_c_hi || null,
+      option_d_hi: option_d_hi || null,
+      correct_option, marks: marks || 1,
+      explanation: explanation || null,
+      difficulty: difficulty || "medium",
+    })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ question: data });
+}
