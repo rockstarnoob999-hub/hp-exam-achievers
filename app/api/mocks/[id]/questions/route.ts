@@ -10,9 +10,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const body = await req.json();
   const {
-    question_text, question_text_hi,
+    question_text, question_text_hi, image_url,
     option_a, option_b, option_c, option_d,
     option_a_hi, option_b_hi, option_c_hi, option_d_hi,
+    option_a_image, option_b_image, option_c_image, option_d_image,
     correct_option, marks, explanation,
   } = body;
 
@@ -29,14 +30,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .from("questions")
     .insert({
       mock_id: params.id,
-      question_text, question_text_hi: question_text_hi || null,
+      question_text,
+      question_text_hi: question_text_hi || null,
+      image_url: image_url || null,
       option_a, option_b, option_c, option_d,
       option_a_hi: option_a_hi || null,
       option_b_hi: option_b_hi || null,
       option_c_hi: option_c_hi || null,
       option_d_hi: option_d_hi || null,
-      correct_option, marks: marks || 1,
-      explanation, order_index: count || 0,
+      option_a_image: option_a_image || null,
+      option_b_image: option_b_image || null,
+      option_c_image: option_c_image || null,
+      option_d_image: option_d_image || null,
+      correct_option,
+      marks: marks || 1,
+      explanation: explanation || null,
+      order_index: count || 0,
     })
     .select()
     .single();
