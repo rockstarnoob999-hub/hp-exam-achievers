@@ -7,7 +7,7 @@ const COOKIE_NAME = "hp_session";
 
 export type SessionPayload = {
   id: string;
-  role: "teacher" | "student";
+  role: "teacher" | "student" | "admin";
   name: string;
 };
 

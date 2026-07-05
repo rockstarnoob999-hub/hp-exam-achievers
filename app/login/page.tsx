@@ -86,9 +86,9 @@ function AnimatedBackground() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const initialRole = params.get("role") === "teacher" ? "teacher" : "student";
+  const initialRole = params.get("role") === "teacher" ? "teacher" : params.get("role") === "admin" ? "admin" : "student";
 
-  const [role, setRole] = useState<"teacher" | "student">(initialRole as any);
+  const [role, setRole] = useState<"teacher" | "student" | "admin">(initialRole as any);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -109,7 +109,9 @@ function LoginForm() {
         setError(data.error || "Login failed");
         return;
       }
-      router.push(role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
+      if (role === "admin") router.push("/admin/dashboard");
+      else if (role === "teacher") router.push("/teacher/dashboard");
+      else router.push("/student/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -145,16 +147,29 @@ function LoginForm() {
             >
               Teacher
             </button>
+            <button
+              type="button"
+              onClick={() => setRole("admin")}
+              className={"flex-1 py-2.5 text-sm font-medium transition " + (role === "admin" ? "bg-red-500 text-white" : "text-white/70 hover:text-white")}
+            >
+              Admin
+            </button>
           </div>
+
+          {role === "admin" && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg px-3 py-2 mb-4">
+              <p className="text-xs text-red-200 text-center">Super Admin Access Only</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-sm text-white/70">
-                {role === "teacher" ? "Email" : "Email or Phone"}
+                {role === "student" ? "Email or Phone" : "Email"}
               </label>
               <input
                 className="w-full mt-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-gold"
-                placeholder={role === "teacher" ? "your@email.com" : "Email or phone number"}
+                placeholder={role === "student" ? "Email or phone number" : "your@email.com"}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
@@ -179,7 +194,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gold text-navy font-semibold py-2.5 rounded-lg hover:opacity-90 transition mt-2"
+              className={"w-full font-semibold py-2.5 rounded-lg hover:opacity-90 transition mt-2 " + (role === "admin" ? "bg-red-500 text-white" : "bg-gold text-navy")}
             >
               {loading ? "Logging in..." : "Login"}
             </button>
