@@ -209,7 +209,7 @@ export default function QuestionBankPage() {
             </button>
           ))}
         </div>
-
+<BulkUploadSection onUploaded={() => load(selectedSubject)} />
         {showForm && (
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm">
             <h2 className="font-semibold text-navy mb-4">Add Question to Bank</h2>
@@ -379,6 +379,65 @@ export default function QuestionBankPage() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+function BulkUploadSection({ onUploaded }: { onUploaded: () => void }) {
+  const [subject, setSubject] = useState(SUBJECTS[0]);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpload(e: React.FormEvent) {
+    e.preventDefault();
+    const file = fileRef.current?.files?.[0];
+    if (!file) { setError("Please select a file."); return; }
+    setUploading(true);
+    setMessage(""); setError("");
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("subject", subject);
+    const res = await fetch("/api/question-bank/bulk-upload", { method: "POST", body: fd });
+    const data = await res.json();
+    setUploading(false);
+    if (!res.ok) { setError(data.error); return; }
+    setMessage(data.message);
+    if (fileRef.current) fileRef.current.value = "";
+    onUploaded();
+  }
+
+  return (
+    <div className="bg-white border border-blue-100 rounded-2xl p-5 mb-6 shadow-sm">
+      <h3 className="font-semibold text-navy mb-1">Bulk Upload Questions</h3>
+      <p className="text-xs text-gray-400 mb-3">
+        Upload an Excel or CSV file with columns: question, option_a, option_b, option_c, option_d, correct_option, explanation, difficulty, marks
+      </p>
+      <form onSubmit={handleUpload} className="flex flex-wrap gap-3 items-end">
+        <div>
+          <label className="text-xs text-gray-400">Subject</label>
+          <select className="input-field mt-1 w-48" value={subject}
+            onChange={(e) => setSubject(e.target.value)}>
+            {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Excel or CSV file</label>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv"
+            className="input-field mt-1" required />
+        </div>
+        <button type="submit" disabled={uploading}
+          className="btn-gold text-sm whitespace-nowrap">
+          {uploading ? "Uploading..." : "Upload Questions"}
+        </button>
+      </form>
+      {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
+      {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+      <div className="mt-3 p-3 bg-blue-50 rounded-xl">
+        <p className="text-xs text-navy font-medium mb-1">Excel template format:</p>
+        <p className="text-xs text-gray-500 font-mono">question | option_a | option_b | option_c | option_d | correct_option | explanation | difficulty | marks</p>
+        <p className="text-xs text-gray-400 mt-1">correct_option should be: a, b, c, or d. difficulty should be: easy, medium, or hard.</p>
+      </div>
     </div>
   );
 }
