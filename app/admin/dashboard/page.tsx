@@ -28,6 +28,7 @@ type Log = {
   user_email: string;
   user_role: string;
   ip_address: string;
+  user_agent: string;
   logged_in_at: string;
 };
 
