@@ -2,6 +2,7 @@
 
 import { useState, Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -15,15 +16,19 @@ function AnimatedBackground() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const particles: { x: number; y: number; r: number; dx: number; dy: number; alpha: number }[] = [];
-    for (let i = 0; i < 60; i++) {
+    const particles: {
+      x: number; y: number; r: number;
+      dx: number; dy: number; alpha: number;
+    }[] = [];
+
+    for (let i = 0; i < 50; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        r: Math.random() * 3 + 1,
-        dx: (Math.random() - 0.5) * 0.6,
-        dy: (Math.random() - 0.5) * 0.6,
-        alpha: Math.random() * 0.5 + 0.1,
+        r: Math.random() * 2.5 + 0.5,
+        dx: (Math.random() - 0.5) * 0.5,
+        dy: (Math.random() - 0.5) * 0.5,
+        alpha: Math.random() * 0.4 + 0.1,
       });
     }
 
@@ -32,6 +37,7 @@ function AnimatedBackground() {
     function draw() {
       if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       particles.forEach((p) => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -45,12 +51,15 @@ function AnimatedBackground() {
 
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
-          const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-          if (dist < 120) {
+          const dist = Math.hypot(
+            particles[i].x - particles[j].x,
+            particles[i].y - particles[j].y
+          );
+          if (dist < 100) {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = "rgba(212,175,55," + (0.15 * (1 - dist / 120)) + ")";
+            ctx.strokeStyle = "rgba(212,175,55," + (0.12 * (1 - dist / 100)) + ")";
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -67,7 +76,6 @@ function AnimatedBackground() {
       canvas.height = window.innerHeight;
     }
     window.addEventListener("resize", handleResize);
-
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
@@ -75,22 +83,21 @@ function AnimatedBackground() {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ display: "block" }}
-    />
+    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ display: "block" }} />
   );
 }
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const initialRole = params.get("role") === "teacher" ? "teacher" : params.get("role") === "admin" ? "admin" : "student";
+  const initialRole = params.get("role") === "teacher"
+    ? "teacher" : params.get("role") === "admin"
+    ? "admin" : "student";
 
   const [role, setRole] = useState<"teacher" | "student" | "admin">(initialRole as any);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -105,10 +112,7 @@ function LoginForm() {
         body: JSON.stringify({ role, identifier, password }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Login failed");
-        return;
-      }
+      if (!res.ok) { setError(data.error || "Login failed"); return; }
       if (role === "admin") router.push("/admin/dashboard");
       else if (role === "teacher") router.push("/teacher/dashboard");
       else router.push("/student/dashboard");
@@ -119,91 +123,133 @@ function LoginForm() {
     }
   }
 
+  const roleConfig = {
+    student: { label: "Student", color: "bg-gold text-navy", icon: "🎓" },
+    teacher: { label: "Teacher", color: "bg-blue-600 text-white", icon: "📚" },
+    admin: { label: "Admin", color: "bg-red-500 text-white", icon: "🛡️" },
+  };
+
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-navy">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #1e3a8a 100%)" }}>
       <AnimatedBackground />
 
-      <div className="relative z-10 w-full max-w-sm mx-4">
+      <div className="relative z-10 w-full max-w-md mx-4">
+
         <div className="text-center mb-8">
-          <h1 className="font-display font-semibold text-3xl text-white mb-1">
-            HP <span className="text-gold">Exam Achievers</span>
-          </h1>
-          <p className="text-white/50 text-sm">Learn - Practice - Achieve</p>
+          <Link href="/" className="inline-block">
+            <h1 className="font-display font-bold text-3xl text-white mb-1">
+              HP <span className="text-gold">Exam Achievers</span>
+            </h1>
+          </Link>
+          <p className="text-white/40 text-sm">Learn - Practice - Achieve</p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl">
-          <div className="flex mb-6 rounded-xl overflow-hidden border border-white/20">
-            <button
-              type="button"
-              onClick={() => setRole("student")}
-              className={"flex-1 py-2.5 text-sm font-medium transition " + (role === "student" ? "bg-gold text-navy" : "text-white/70 hover:text-white")}
-            >
-              Student
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("teacher")}
-              className={"flex-1 py-2.5 text-sm font-medium transition " + (role === "teacher" ? "bg-gold text-navy" : "text-white/70 hover:text-white")}
-            >
-              Teacher
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("admin")}
-              className={"flex-1 py-2.5 text-sm font-medium transition " + (role === "admin" ? "bg-red-500 text-white" : "text-white/70 hover:text-white")}
-            >
-              Admin
-            </button>
+        <div className="rounded-3xl p-8 shadow-2xl"
+          style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(24px)", border: "1px solid rgba(255,255,255,0.15)" }}>
+
+          <div className="flex mb-7 rounded-2xl overflow-hidden p-1 gap-1"
+            style={{ background: "rgba(0,0,0,0.2)" }}>
+            {(["student", "teacher", "admin"] as const).map((r) => (
+              <button key={r} type="button" onClick={() => setRole(r)}
+                className={"flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all duration-300 capitalize flex items-center justify-center gap-1.5 " + (
+                  role === r
+                    ? roleConfig[r].color + " shadow-lg"
+                    : "text-white/50 hover:text-white"
+                )}>
+                <span>{roleConfig[r].icon}</span>
+                <span className="hidden sm:inline">{roleConfig[r].label}</span>
+              </button>
+            ))}
           </div>
 
           {role === "admin" && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-lg px-3 py-2 mb-4">
-              <p className="text-xs text-red-200 text-center">Super Admin Access Only</p>
+            <div className="bg-red-500/20 border border-red-400/30 rounded-xl px-4 py-2.5 mb-5 flex items-center gap-2">
+              <span className="text-red-300 text-lg">🛡️</span>
+              <p className="text-red-200 text-xs font-medium">Super Admin Access - Restricted</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="text-sm text-white/70">
-                {role === "student" ? "Email or Phone" : "Email"}
+              <label className="text-white/60 text-xs font-medium block mb-1.5">
+                {role === "student" ? "Email or Phone Number" : "Email Address"}
               </label>
-              <input
-                className="w-full mt-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-gold"
-                placeholder={role === "student" ? "Email or phone number" : "your@email.com"}
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <input
+                  className="w-full rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-gold/50 transition"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                  placeholder={role === "student" ? "Enter email or phone" : "Enter your email"}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                />
+              </div>
             </div>
+
             <div>
-              <label className="text-sm text-white/70">Password</label>
-              <input
-                type="password"
-                className="w-full mt-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-gold"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <label className="text-white/60 text-xs font-medium block mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full rounded-xl px-4 py-3 pr-12 text-white text-sm placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-gold/50 transition"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition text-xs">
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
+
             {error && (
-              <div className="bg-red-500/20 border border-red-500/30 rounded-lg px-3 py-2">
-                <p className="text-sm text-red-200">{error}</p>
+              <div className="rounded-xl px-4 py-3 flex items-center gap-2"
+                style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <span className="text-red-300 text-sm">!</span>
+                <p className="text-red-200 text-sm">{error}</p>
               </div>
             )}
-            <button
-              type="submit"
-              disabled={loading}
-              className={"w-full font-semibold py-2.5 rounded-lg hover:opacity-90 transition mt-2 " + (role === "admin" ? "bg-red-500 text-white" : "bg-gold text-navy")}
-            >
-              {loading ? "Logging in..." : "Login"}
+
+            <button type="submit" disabled={loading}
+              className={"w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed " + (
+                role === "admin"
+                  ? "bg-red-500 text-white hover:bg-red-400"
+                  : role === "teacher"
+                  ? "text-navy hover:opacity-90"
+                  : "text-navy hover:opacity-90"
+              )}
+              style={role !== "admin" ? { background: "linear-gradient(135deg, #fbbf24, #f59e0b)" } : {}}>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                  Logging in...
+                </span>
+              ) : (
+                "Login as " + roleConfig[role].label
+              )}
             </button>
           </form>
+
+          <div className="mt-6 pt-5 border-t border-white/10 text-center">
+            <p className="text-white/40 text-xs">
+              Need help?{" "}
+              <a href="mailto:rulebreakers299@gmail.com"
+                className="text-gold hover:underline">
+                rulebreakers299@gmail.com
+              </a>
+            </p>
+          </div>
         </div>
 
-        <p className="text-center text-white/30 text-xs mt-6">
-          HP Exam Achievers - Himachal Pradesh
-        </p>
+        <div className="mt-6 text-center">
+          <Link href="/" className="text-white/30 hover:text-white/60 text-xs transition">
+            Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   );

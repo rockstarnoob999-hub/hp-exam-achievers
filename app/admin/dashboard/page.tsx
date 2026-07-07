@@ -52,6 +52,7 @@ export default function AdminDashboard() {
   const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
 
   async function loadAll() {
     setLoading(true);
@@ -59,7 +60,7 @@ export default function AdminDashboard() {
       fetch("/api/admin/stats"),
       fetch("/api/admin/teachers"),
       fetch("/api/admin/students"),
-      fetch("/api/admin/logs?limit=50"),
+      fetch("/api/admin/logs?limit=100"),
     ]);
 
     if (statsRes.status === 401) { router.push("/login"); return; }
@@ -86,7 +87,7 @@ export default function AdminDashboard() {
   }
 
   async function deleteTeacher(id: string, name: string) {
-    if (!window.confirm("Delete teacher " + name + "? This removes all their mocks and students too.")) return;
+    if (!window.confirm("Delete teacher " + name + "? This removes all their data.")) return;
     const res = await fetch("/api/admin/teachers", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -105,35 +106,58 @@ export default function AdminDashboard() {
     if (res.ok) { setMessage("Student deleted."); loadAll(); }
   }
 
+  const filteredTeachers = teachers.filter((t) =>
+    t.name.toLowerCase().includes(search.toLowerCase()) ||
+    t.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredStudents = students.filter((s) =>
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
+    (s.email || "").toLowerCase().includes(search.toLowerCase()) ||
+    (s.phone || "").includes(search)
+  );
+
+  const tabs = [
+    { key: "overview", label: "Overview", icon: "📊" },
+    { key: "teachers", label: "Teachers", icon: "👨‍🏫" },
+    { key: "students", label: "Students", icon: "👨‍🎓" },
+    { key: "logs", label: "Logs", icon: "📋" },
+  ] as const;
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="font-bold text-navy">HP <span className="text-gold">Exam Achievers</span></div>
-          <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-lg font-medium">Super Admin</span>
-          <Link href="/" className="text-xs text-gray-400 hover:text-navy transition">Home</Link>
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-40">
+        <div className="flex items-center gap-2">
+          <div className="font-bold text-navy text-sm">HP <span className="text-gold">Exam Achievers</span></div>
+          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Admin</span>
         </div>
-        <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-red-500 transition">Logout</button>
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-xs text-gray-400 hover:text-navy">Home</Link>
+          <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500 transition">Logout</button>
+        </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        {message && (
-          <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">
-            {message}
-            <button onClick={() => setMessage("")} className="ml-3 underline">Dismiss</button>
-          </div>
-        )}
+      {message && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm flex justify-between items-center">
+          {message}
+          <button onClick={() => setMessage("")} className="text-green-500 font-bold ml-3">x</button>
+        </div>
+      )}
 
-        <div className="flex flex-wrap gap-2 mb-8">
-          {(["overview", "teachers", "students", "logs"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={"px-5 py-2.5 rounded-lg font-medium text-sm capitalize transition " + (
-                tab === t ? "bg-navy text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-navy"
-              )}
-            >
-              {t === "overview" ? "Overview" : t === "teachers" ? "Teachers" : t === "students" ? "Students" : "Login Logs"}
+      <div className="max-w-6xl mx-auto px-4 py-4">
+
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+          {tabs.map((t) => (
+            <button key={t.key} onClick={() => { setTab(t.key); setSearch(""); }}
+              className={"flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all " + (
+                tab === t.key
+                  ? "bg-navy text-white shadow-sm"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-navy"
+              )}>
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+              {t.key === "teachers" && <span className="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{teachers.length}</span>}
+              {t.key === "students" && <span className="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{students.length}</span>}
             </button>
           ))}
         </div>
@@ -147,205 +171,203 @@ export default function AdminDashboard() {
           <>
             {tab === "overview" && stats && (
               <div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-                  <StatCard label="Teachers" value={stats.total_teachers} color="text-blue-600" bg="bg-blue-50" />
-                  <StatCard label="Students" value={stats.total_students} color="text-green-600" bg="bg-green-50" />
-                  <StatCard label="Mock Tests" value={stats.total_mocks} color="text-yellow-600" bg="bg-yellow-50" />
-                  <StatCard label="Submitted" value={stats.total_attempts} color="text-purple-600" bg="bg-purple-50" />
-                  <StatCard label="Total Logins" value={stats.total_logins} color="text-red-600" bg="bg-red-50" />
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                  {[
+                    { label: "Teachers", value: stats.total_teachers, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200", icon: "👨‍🏫" },
+                    { label: "Students", value: stats.total_students, color: "text-green-600", bg: "bg-green-50", border: "border-green-200", icon: "👨‍🎓" },
+                    { label: "Mocks", value: stats.total_mocks, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200", icon: "📝" },
+                    { label: "Submitted", value: stats.total_attempts, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200", icon: "✅" },
+                    { label: "Logins", value: stats.total_logins, color: "text-red-600", bg: "bg-red-50", border: "border-red-200", icon: "🔐" },
+                  ].map((s) => (
+                    <div key={s.label} className={"bg-white rounded-2xl p-4 border shadow-sm " + s.border}>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-gray-500 text-xs">{s.label}</p>
+                        <span className="text-xl">{s.icon}</span>
+                      </div>
+                      <p className={"font-bold text-2xl md:text-3xl " + s.color}>{s.value}</p>
+                    </div>
+                  ))}
                 </div>
 
-                <h2 className="font-semibold text-navy mb-3">Recent Login Activity</h2>
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">User</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Role</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">IP</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {logs.slice(0, 10).map((log) => (
-                        <tr key={log.id} className="border-b border-gray-100 last:border-0">
-                          <td className="px-4 py-3">
-                            <p className="font-medium text-navy">{log.user_name}</p>
-                            <p className="text-xs text-gray-400">{log.user_email}</p>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={"text-xs px-2 py-1 rounded-lg font-medium " + (
-                              log.user_role === "teacher" ? "bg-blue-50 text-blue-700" :
-                              log.user_role === "admin" ? "bg-red-50 text-red-700" :
-                              "bg-green-50 text-green-700"
-                            )}>
-                              {log.user_role}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{log.ip_address}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">
-                            {new Date(log.logged_in_at).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <h3 className="font-semibold text-navy mb-3">Recent Login Activity</h3>
+                <div className="space-y-2">
+                  {logs.slice(0, 10).map((log) => (
+                    <div key={log.id} className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 flex items-center gap-3">
+                      <div className={"w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 " + (
+                        log.user_role === "teacher" ? "bg-blue-100" :
+                        log.user_role === "admin" ? "bg-red-100" : "bg-green-100"
+                      )}>
+                        {log.user_role === "teacher" ? "T" : log.user_role === "admin" ? "A" : "S"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-navy text-sm truncate">{log.user_name}</p>
+                        <p className="text-xs text-gray-400 truncate">{log.user_email}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className={"text-xs px-2 py-0.5 rounded-full font-medium " + (
+                          log.user_role === "teacher" ? "bg-blue-50 text-blue-700" :
+                          log.user_role === "admin" ? "bg-red-50 text-red-700" :
+                          "bg-green-50 text-green-700"
+                        )}>
+                          {log.user_role}
+                        </span>
+                        <p className="text-xs text-gray-400 mt-0.5">{new Date(log.logged_in_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
             {tab === "teachers" && (
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-semibold text-navy text-lg">All Teachers ({teachers.length})</h2>
-                  <button onClick={() => setShowAddTeacher(true)} className="btn-primary text-sm">
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <input
+                    className="input-field flex-1"
+                    placeholder="Search teachers..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  <button onClick={() => setShowAddTeacher(true)} className="btn-primary text-sm whitespace-nowrap">
                     + Add Teacher
                   </button>
                 </div>
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Name</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Email</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Joined</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {teachers.map((t) => (
-                        <tr key={t.id} className="border-b border-gray-100 last:border-0">
-                          <td className="px-4 py-3 font-medium text-navy">{t.name}</td>
-                          <td className="px-4 py-3 text-gray-500">{t.email}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{new Date(t.created_at).toLocaleDateString()}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              <button onClick={() => setEditTeacher(t)} className="text-xs text-navy underline">Edit</button>
-                              <button onClick={() => deleteTeacher(t.id, t.name)} className="text-xs text-red-500 underline">Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-2">
+                  {filteredTeachers.map((t) => (
+                    <div key={t.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 flex-shrink-0">
+                        {t.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-navy truncate">{t.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{t.email}</p>
+                        <p className="text-xs text-gray-300">{new Date(t.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button onClick={() => setEditTeacher(t)}
+                          className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">
+                          Edit
+                        </button>
+                        <button onClick={() => deleteTeacher(t.id, t.name)}
+                          className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredTeachers.length === 0 && (
+                    <p className="text-center text-gray-400 py-8">No teachers found.</p>
+                  )}
                 </div>
               </div>
             )}
 
             {tab === "students" && (
               <div>
-                <h2 className="font-semibold text-navy text-lg mb-4">All Students ({students.length})</h2>
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Name</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Contact</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Teacher</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((s) => (
-                        <tr key={s.id} className="border-b border-gray-100 last:border-0">
-                          <td className="px-4 py-3 font-medium text-navy">{s.name}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{s.email || s.phone}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{s.teachers?.name || "Unknown"}</td>
-                          <td className="px-4 py-3">
-                            <span className={"text-xs px-2 py-1 rounded-lg " + (s.is_disabled ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700")}>
-                              {s.is_disabled ? "Disabled" : "Active"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              <button onClick={() => setEditStudent(s)} className="text-xs text-navy underline">Edit</button>
-                              <button onClick={() => deleteStudent(s.id, s.name)} className="text-xs text-red-500 underline">Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <input
+                  className="input-field w-full mb-4"
+                  placeholder="Search students by name, email or phone..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <div className="space-y-2">
+                  {filteredStudents.map((s) => (
+                    <div key={s.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                      <div className={"w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 " + (s.is_disabled ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700")}>
+                        {s.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-navy truncate text-sm">{s.name}</p>
+                          {s.is_disabled && (
+                            <span className="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full">Disabled</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 truncate">{s.email || s.phone}</p>
+                        <p className="text-xs text-gray-300">Teacher: {s.teachers?.name || "Unknown"}</p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button onClick={() => setEditStudent(s)}
+                          className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">
+                          Edit
+                        </button>
+                        <button onClick={() => deleteStudent(s.id, s.name)}
+                          className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredStudents.length === 0 && (
+                    <p className="text-center text-gray-400 py-8">No students found.</p>
+                  )}
                 </div>
               </div>
             )}
 
             {tab === "logs" && (
               <div>
-                <h2 className="font-semibold text-navy text-lg mb-4">Login Activity ({logs.length} recent)</h2>
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">User</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Role</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">IP Address</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Device</th>
-                        <th className="text-left px-4 py-3 text-gray-500 font-medium">Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {logs.map((log) => (
-                        <tr key={log.id} className="border-b border-gray-100 last:border-0">
-                          <td className="px-4 py-3">
-                            <p className="font-medium text-navy">{log.user_name}</p>
-                            <p className="text-xs text-gray-400">{log.user_email}</p>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={"text-xs px-2 py-1 rounded-lg font-medium " + (
-                              log.user_role === "teacher" ? "bg-blue-50 text-blue-700" :
-                              log.user_role === "admin" ? "bg-red-50 text-red-700" :
-                              "bg-green-50 text-green-700"
-                            )}>
-                              {log.user_role}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{log.ip_address}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs max-w-[200px] truncate">{log.user_agent}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{new Date(log.logged_in_at).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="flex gap-2 mb-4 overflow-x-auto">
+                  {["all", "student", "teacher", "admin"].map((r) => (
+                    <button key={r} onClick={() => setSearch(r === "all" ? "" : r)}
+                      className={"px-3 py-1.5 rounded-lg text-xs font-medium border whitespace-nowrap transition " + (
+                        (r === "all" && search === "") || search === r
+                          ? "bg-navy text-white border-navy"
+                          : "bg-white border-gray-200 text-gray-600"
+                      )}>
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  {logs
+                    .filter((l) => !search || l.user_role === search)
+                    .map((log) => (
+                      <div key={log.id} className="bg-white rounded-xl border border-gray-200 p-3 flex items-start gap-3">
+                        <div className={"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 " + (
+                          log.user_role === "teacher" ? "bg-blue-100 text-blue-700" :
+                          log.user_role === "admin" ? "bg-red-100 text-red-700" :
+                          "bg-green-100 text-green-700"
+                        )}>
+                          {log.user_role.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between flex-wrap gap-1">
+                            <p className="font-medium text-navy text-sm">{log.user_name}</p>
+                            <span className="text-xs text-gray-400">{new Date(log.logged_in_at).toLocaleString()}</span>
+                          </div>
+                          <p className="text-xs text-gray-400 truncate">{log.user_email}</p>
+                          <p className="text-xs text-gray-300">IP: {log.ip_address}</p>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
           </>
         )}
-      </main>
+      </div>
 
       {showAddTeacher && (
         <AddTeacherModal
           onClose={() => setShowAddTeacher(false)}
-          onSaved={() => { setShowAddTeacher(false); setMessage("Teacher created."); loadAll(); }}
+          onSaved={() => { setShowAddTeacher(false); setMessage("Teacher created successfully."); loadAll(); }}
         />
       )}
-
       {editTeacher && (
         <EditTeacherModal
           teacher={editTeacher}
           onClose={() => setEditTeacher(null)}
-          onSaved={() => { setEditTeacher(null); setMessage("Teacher updated."); loadAll(); }}
+          onSaved={() => { setEditTeacher(null); setMessage("Teacher updated successfully."); loadAll(); }}
         />
       )}
-
       {editStudent && (
         <EditStudentModal
           student={editStudent}
           onClose={() => setEditStudent(null)}
-          onSaved={() => { setEditStudent(null); setMessage("Student updated."); loadAll(); }}
+          onSaved={() => { setEditStudent(null); setMessage("Student updated successfully."); loadAll(); }}
         />
       )}
-    </div>
-  );
-}
-
-function StatCard({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
-  return (
-    <div className={"rounded-2xl p-5 border border-gray-100 shadow-sm " + bg}>
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className={"font-display font-bold text-3xl " + color}>{value}</p>
     </div>
   );
 }
@@ -371,9 +393,9 @@ function AddTeacherModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="font-semibold text-navy text-lg mb-4">Add New Teacher</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl">
+        <h2 className="font-bold text-navy text-lg mb-4">Add New Teacher</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input className="input-field" placeholder="Full Name" required
             value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -383,8 +405,11 @@ function AddTeacherModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-lg py-2 text-sm">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary flex-1 text-sm">{saving ? "Creating..." : "Create Teacher"}</button>
+            <button type="button" onClick={onClose}
+              className="flex-1 border border-gray-200 rounded-xl py-3 text-sm hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1">
+              {saving ? "Creating..." : "Create Teacher"}
+            </button>
           </div>
         </form>
       </div>
@@ -416,9 +441,9 @@ function EditTeacherModal({ teacher, onClose, onSaved }: { teacher: Teacher; onC
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="font-semibold text-navy text-lg mb-1">Edit Teacher</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl">
+        <h2 className="font-bold text-navy text-lg mb-1">Edit Teacher</h2>
         <p className="text-sm text-gray-400 mb-4">{teacher.email}</p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -432,8 +457,11 @@ function EditTeacherModal({ teacher, onClose, onSaved }: { teacher: Teacher; onC
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-lg py-2 text-sm">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary flex-1 text-sm">{saving ? "Saving..." : "Save Changes"}</button>
+            <button type="button" onClick={onClose}
+              className="flex-1 border border-gray-200 rounded-xl py-3 text-sm">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1">
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
           </div>
         </form>
       </div>
@@ -466,10 +494,10 @@ function EditStudentModal({ student, onClose, onSaved }: { student: Student; onC
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="font-semibold text-navy text-lg mb-1">Edit Student</h2>
-        <p className="text-sm text-gray-400 mb-4">{student.name} - Teacher: {student.teachers?.name}</p>
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl">
+        <h2 className="font-bold text-navy text-lg mb-1">Edit Student</h2>
+        <p className="text-sm text-gray-400 mb-4">{student.name} - {student.teachers?.name}</p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="text-xs text-gray-400">New Password (leave blank to keep current)</label>
@@ -481,14 +509,20 @@ function EditStudentModal({ student, onClose, onSaved }: { student: Student; onC
             <input type="number" className="input-field mt-1"
               value={attempts} onChange={(e) => setAttempts(Number(e.target.value))} />
           </div>
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} />
-            Account disabled
+          <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+            <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} className="w-4 h-4" />
+            <div>
+              <p className="text-sm font-medium text-navy">Disable account</p>
+              <p className="text-xs text-gray-400">Student will not be able to login</p>
+            </div>
           </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-lg py-2 text-sm">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary flex-1 text-sm">{saving ? "Saving..." : "Save Changes"}</button>
+            <button type="button" onClick={onClose}
+              className="flex-1 border border-gray-200 rounded-xl py-3 text-sm">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1">
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
           </div>
         </form>
       </div>

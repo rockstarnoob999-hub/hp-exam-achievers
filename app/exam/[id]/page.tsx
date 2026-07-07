@@ -25,6 +25,7 @@ export default function ExamPage() {
   const [error, setError] = useState("");
   const [hindi, setHindi] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState("");
 
   const [mock, setMock] = useState<any>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -75,12 +76,39 @@ export default function ExamPage() {
       body: JSON.stringify({ mock_id: id, access_password: accessPassword }),
     });
     const data = await res.json();
-    if (!res.ok) { setError(data.error); return; }
+    if (!res.ok) {
+      if (data.timed_out) {
+        setError("Your previous attempt timed out. Redirecting to results...");
+        setTimeout(() => router.push("/result/" + data.attempt_id), 2000);
+        return;
+      }
+      setError(data.error);
+      return;
+    }
+
     setAttemptId(data.attempt.id);
+
     const qRes = await fetch("/api/mocks/" + id);
     const qData = await qRes.json();
     setQuestions(qData.questions || []);
-    setSecondsLeft((qData.mock.duration_minutes || 30) * 60);
+    setSecondsLeft(data.remaining_seconds || (qData.mock.duration_minutes || 30) * 60);
+
+    // Restore saved answers if resuming
+    if (data.resuming && data.saved_answers?.length > 0) {
+      const restored: Record<string, { selected?: string; marked?: boolean }> = {};
+      data.saved_answers.forEach((a: any) => {
+        restored[a.question_id] = {
+          selected: a.selected_option || undefined,
+          marked: a.marked_for_review || false,
+        };
+      });
+      setResponses(restored);
+    }
+
+    if (data.resuming) {
+      setResumeMessage("Resuming your previous attempt. Your answers and remaining time have been restored.");
+    }
+
     setPhase("exam");
   }
 
@@ -215,6 +243,12 @@ export default function ExamPage() {
       <div className="w-full bg-gray-100 h-1">
         <div className="bg-green-500 h-1 transition-all duration-500" style={{ width: progressPercent + "%" }} />
       </div>
+      {resumeMessage && (
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-xs text-blue-700 text-center flex items-center justify-center gap-2">
+          <span>Resumed from where you left off</span>
+          <button onClick={() => setResumeMessage("")} className="text-blue-400 hover:text-blue-600 font-bold">x</button>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col md:flex-row max-w-5xl mx-auto w-full"
         onTouchStart={handleTouchStart}
