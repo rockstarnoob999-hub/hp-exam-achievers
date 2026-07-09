@@ -148,7 +148,8 @@ export default function StudentDashboard() {
             <div className="grid md:grid-cols-2 gap-4 mb-8">
               {mocks.map((m) => {
                 const used = attemptsUsed(m.id);
-                const remaining = 3 - used;
+              const allowed = m.attempts_allowed ?? 3;
+              const remaining = allowed - used;;
                 const best = bestScore(m.id);
                 const exhausted = remaining <= 0;
                 return (
