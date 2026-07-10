@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/auth";
 
-// GET /api/mocks -> list mocks for the logged-in teacher, or assigned mocks for a student
 export async function GET(req: NextRequest) {
   const session = getSession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,16 +16,36 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ mocks: data });
   }
 
-  // student: only mocks assigned to them
-  const { data, error } = await supabaseAdmin
-    .from("mock_assignments")
-    .select("mocks(*)")
-    .eq("student_id", session.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ mocks: data?.map((d: any) => d.mocks) || [] });
+  if (session.role === "student") {
+    // Get student record to find attempts_allowed
+    const { data: student } = await supabaseAdmin
+      .from("students")
+      .select("attempts_allowed")
+      .eq("id", session.id)
+      .single();
+
+    // Get assigned mocks
+    const { data: assignments, error } = await supabaseAdmin
+      .from("mock_assignments")
+      .select("mocks(*)")
+      .eq("student_id", session.id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const mocks = (assignments || [])
+      .map((d: any) => d.mocks)
+      .filter(Boolean)
+      .map((m: any) => ({
+        ...m,
+        attempts_allowed: student?.attempts_allowed ?? 3,
+      }));
+
+    return NextResponse.json({ mocks });
+  }
+
+  return NextResponse.json({ mocks: [] });
 }
 
-// POST /api/mocks -> create a mock (teacher only)
 export async function POST(req: NextRequest) {
   const session = getSession(req);
   if (!session || session.role !== "teacher") {
