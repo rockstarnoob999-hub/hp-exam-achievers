@@ -307,18 +307,49 @@ export default function AdminDashboard() {
 
             {tab === "logs" && (
               <div>
-                <div className="flex gap-2 mb-4 overflow-x-auto">
-                  {["all", "student", "teacher", "admin"].map((r) => (
-                    <button key={r} onClick={() => setSearch(r === "all" ? "" : r)}
-                      className={"px-3 py-1.5 rounded-lg text-xs font-medium border whitespace-nowrap transition " + (
-                        (r === "all" && search === "") || search === r
-                          ? "bg-navy text-white border-navy"
-                          : "bg-white border-gray-200 text-gray-600"
-                      )}>
-                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div className="flex gap-2 overflow-x-auto">
+                    {["all", "student", "teacher", "admin"].map((r) => (
+                      <button key={r} onClick={() => setSearch(r === "all" ? "" : r)}
+                        className={"px-3 py-1.5 rounded-lg text-xs font-medium border whitespace-nowrap transition " + (
+                          (r === "all" && search === "") || search === r
+                            ? "bg-navy text-white border-navy"
+                            : "bg-white border-gray-200 text-gray-600"
+                        )}>
+                        {r.charAt(0).toUpperCase() + r.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm("Delete logs older than 30 days?")) return;
+                        const res = await fetch("/api/admin/logs", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ clear_all: true, older_than_days: 30 }),
+                        });
+                        if (res.ok) { setMessage("Logs older than 30 days deleted."); loadAll(); }
+                      }}
+                      className="text-xs bg-yellow-50 text-yellow-700 border border-yellow-200 px-3 py-1.5 rounded-lg hover:bg-yellow-100 transition">
+                      Clear 30+ days
                     </button>
-                  ))}
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm("Delete ALL login logs? This cannot be undone.")) return;
+                        const res = await fetch("/api/admin/logs", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ clear_all: true }),
+                        });
+                        if (res.ok) { setMessage("All login logs cleared."); loadAll(); }
+                      }}
+                      className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                      Clear All Logs
+                    </button>
+                  </div>
                 </div>
+
                 <div className="space-y-2">
                   {logs
                     .filter((l) => !search || l.user_role === search)
@@ -339,8 +370,25 @@ export default function AdminDashboard() {
                           <p className="text-xs text-gray-400 truncate">{log.user_email}</p>
                           <p className="text-xs text-gray-300">IP: {log.ip_address}</p>
                         </div>
+                        <button
+                          onClick={async () => {
+                            const res = await fetch("/api/admin/logs", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ log_id: log.id }),
+                            });
+                            if (res.ok) loadAll();
+                          }}
+                          className="flex-shrink-0 text-xs text-red-400 hover:text-red-600 transition px-2 py-1 rounded-lg hover:bg-red-50">
+                          Delete
+                        </button>
                       </div>
                     ))}
+                  {logs.filter((l) => !search || l.user_role === search).length === 0 && (
+                    <div className="text-center py-10 bg-white border border-dashed border-gray-200 rounded-2xl">
+                      <p className="text-gray-400">No login logs found.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
