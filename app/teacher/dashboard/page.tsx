@@ -19,7 +19,27 @@ type Mock = {
   leaderboard_enabled: boolean;
   created_at: string;
 };
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
 
+  function handleCopy() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={"flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium transition " + (
+        copied ? "bg-green-100 text-green-700" : "bg-white border border-gray-200 text-gray-500 hover:border-navy hover:text-navy"
+      )}
+    >
+      {copied ? "Copied!" : "Copy"}
+    </button>
+  );
+}
 export default function TeacherDashboard() {
   const router = useRouter();
   const [mocks, setMocks] = useState<Mock[]>([]);
@@ -176,8 +196,13 @@ export default function TeacherDashboard() {
                 </div>
 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-gray-600 break-all">
-                  <p><span className="text-gray-400">Link:</span> {typeof window !== "undefined" ? window.location.origin : ""}/exam/{m.id}</p>
-                  <p className="mt-1"><span className="text-gray-400">Password:</span> <span className="text-navy font-mono font-bold">{m.access_password}</span></p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p><span className="text-gray-400">Link:</span> {typeof window !== "undefined" ? window.location.origin : ""}/exam/{m.id}</p>
+                      <p className="mt-1"><span className="text-gray-400">Password:</span> <span className="text-navy font-mono font-bold">{m.access_password}</span></p>
+                    </div>
+                    <CopyButton text={(typeof window !== "undefined" ? window.location.origin : "") + "/exam/" + m.id + "\nPassword: " + m.access_password} />
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-sm">
