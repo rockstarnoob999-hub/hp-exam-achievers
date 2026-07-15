@@ -33,6 +33,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Incorrect test password" }, { status: 403 });
   }
 
+  // Check scheduling
+  const now = new Date();
+  if (mock.start_date && new Date(mock.start_date) > now) {
+    const startTime = new Date(mock.start_date).toLocaleString("en-IN", {
+      dateStyle: "medium", timeStyle: "short"
+    });
+    return NextResponse.json({
+      error: "This test has not started yet. It will be available from " + startTime,
+    }, { status: 403 });
+  }
+
+  if (mock.end_date && new Date(mock.end_date) < now) {
+    const endTime = new Date(mock.end_date).toLocaleString("en-IN", {
+      dateStyle: "medium", timeStyle: "short"
+    });
+    return NextResponse.json({
+      error: "This test has ended. It was available until " + endTime,
+    }, { status: 403 });
+  }
+
   const { data: assigned } = await supabaseAdmin
     .from("mock_assignments")
     .select("id")
