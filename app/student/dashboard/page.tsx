@@ -69,7 +69,10 @@ export default function StudentDashboard() {
           <div className="font-bold text-navy text-sm md:text-base">HP <span className="text-gold">Exam Achievers</span></div>
           <Link href="/" className="text-xs text-gray-400 hover:text-navy transition hidden sm:block">Home</Link>
         </div>
-        <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-red-500 transition">Logout</button>
+        <div className="flex items-center gap-3">
+          <Link href="/student/profile" className="text-sm text-gray-400 hover:text-navy transition">My Profile</Link>
+          <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-red-500 transition">Logout</button>
+        </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 md:px-6 py-6">
