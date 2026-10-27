@@ -157,6 +157,7 @@ export default function StudentDashboard() {
                 const best = bestScore(m.id);
                 const inProgress = hasInProgress(m.id);
                 const exhausted = remaining <= 0 && !inProgress;
+                const label = inProgress ? "Resume" : used === 0 ? "Start" : "Retake";
                 return (
                   <div key={m.id}
                     className={"bg-white rounded-2xl p-5 shadow-sm border transition-all duration-300 hover:-translate-y-1 hover:shadow-md " +
@@ -197,22 +198,37 @@ export default function StudentDashboard() {
                       </p>
                     )}
 
-                    <div className="flex items-center gap-2">
-                      {exhausted ? (
+                    {exhausted ? (
+                      <div className="flex items-center gap-2">
                         <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-2.5 rounded-xl font-medium flex-1 text-center">
                           Attempts Exhausted
                         </span>
-                      ) : (
-                        <Link href={"/exam/" + m.id + "/tcs"}
-                          className="flex-1 py-2.5 rounded-xl font-semibold text-white text-sm text-center transition-all hover:opacity-90 hover:shadow-lg bg-[#1f4e79]">
-                          {inProgress ? "Resume Test" : used === 0 ? "Start Test" : "Retake"}
+                        <Link href={"/leaderboard/" + m.id}
+                          className="px-3 py-2.5 rounded-xl text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium flex-shrink-0">
+                          Leaderboard
                         </Link>
-                      )}
-                      <Link href={"/leaderboard/" + m.id}
-                        className="px-3 py-2.5 rounded-xl text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium flex-shrink-0">
-                        Leaderboard
-                      </Link>
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Link href={"/exam/" + m.id + "/tcs"}
+                            className="py-2.5 rounded-xl font-semibold text-white text-xs md:text-sm text-center transition-all hover:opacity-90 hover:shadow-lg bg-[#1f4e79]">
+                            {label} - CBT
+                          </Link>
+                          <Link href={"/exam/" + m.id + "/tablet"}
+                            className="py-2.5 rounded-xl font-semibold text-white text-xs md:text-sm text-center transition-all hover:opacity-90 hover:shadow-lg bg-[#1a9e85]">
+                            {label} - Tablet
+                          </Link>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-gray-400">CBT = computer layout. Tablet = HPRCA digital OMR layout.</p>
+                          <Link href={"/leaderboard/" + m.id}
+                            className="px-3 py-1.5 rounded-lg text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium flex-shrink-0">
+                            Leaderboard
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
