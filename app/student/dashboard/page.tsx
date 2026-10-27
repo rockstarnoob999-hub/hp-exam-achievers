@@ -193,42 +193,26 @@ export default function StudentDashboard() {
 
                     {inProgress && (
                       <p className="text-xs bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg px-3 py-1.5 mb-3 text-center">
-                        You have a test in progress. Tap a mode below to resume.
+                        You have a test in progress. Tap Resume to continue.
                       </p>
                     )}
 
-                    {exhausted ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-2 rounded-xl font-medium flex-1 text-center">
+                    <div className="flex items-center gap-2">
+                      {exhausted ? (
+                        <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-2.5 rounded-xl font-medium flex-1 text-center">
                           Attempts Exhausted
                         </span>
-                        <Link href={"/leaderboard/" + m.id}
-                          className="px-3 py-2 rounded-xl text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium">
-                          Leaderboard
+                      ) : (
+                        <Link href={"/exam/" + m.id + "/tcs"}
+                          className="flex-1 py-2.5 rounded-xl font-semibold text-white text-sm text-center transition-all hover:opacity-90 hover:shadow-lg bg-[#1f4e79]">
+                          {inProgress ? "Resume Test" : used === 0 ? "Start Test" : "Retake"}
                         </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <Link href={"/exam/" + m.id}
-                            className="py-2.5 rounded-xl font-semibold text-white text-xs md:text-sm text-center transition-all hover:opacity-90 hover:shadow-lg"
-                            style={{ background: "linear-gradient(135deg, #1e3a8a, #2563eb)" }}>
-                            {inProgress ? "Resume" : used === 0 ? "Start" : "Retake"} - Modern
-                          </Link>
-                          <Link href={"/exam/" + m.id + "/tcs"}
-                            className="py-2.5 rounded-xl font-semibold text-white text-xs md:text-sm text-center transition-all hover:opacity-90 hover:shadow-lg bg-[#1f4e79]">
-                            {inProgress ? "Resume" : used === 0 ? "Start" : "Retake"} - CBT
-                          </Link>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-400">CBT mode = real exam style layout</p>
-                          <Link href={"/leaderboard/" + m.id}
-                            className="px-3 py-1.5 rounded-lg text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium">
-                            Leaderboard
-                          </Link>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                      <Link href={"/leaderboard/" + m.id}
+                        className="px-3 py-2.5 rounded-xl text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium flex-shrink-0">
+                        Leaderboard
+                      </Link>
+                    </div>
                   </div>
                 );
               })}

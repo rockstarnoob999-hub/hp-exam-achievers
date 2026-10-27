@@ -9,9 +9,16 @@ export async function PUT(
 ) {
   const { id } = await params;
   const session = getSession(req);
-  if (!session || session.role !== "student") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session || session.role !== "student") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const { data: attempt } = await supabaseAdmin.from("attempts").select("*").eq("id", id).single();
+  const { data: attempt } = await supabaseAdmin
+    .from("attempts")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   if (!attempt || attempt.student_id !== session.id) {
     return NextResponse.json({ error: "Attempt not found" }, { status: 404 });
   }
@@ -20,13 +27,15 @@ export async function PUT(
   }
 
   const { question_id, selected_option, marked_for_review } = await req.json();
-  if (!question_id) return NextResponse.json({ error: "question_id required" }, { status: 400 });
+  if (!question_id) {
+    return NextResponse.json({ error: "question_id required" }, { status: 400 });
+  }
 
   const { error } = await supabaseAdmin
     .from("answers")
     .upsert(
       {
-        id,
+        attempt_id: id,
         question_id,
         selected_option: selected_option ?? null,
         marked_for_review: !!marked_for_review,
