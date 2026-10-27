@@ -34,7 +34,11 @@ export default function StudentDashboard() {
   }
 
   function attemptsUsed(mockId: string) {
-    return attempts.filter((a) => a.mock_id === mockId).length;
+    return attempts.filter((a) => a.mock_id === mockId && a.status !== "in_progress").length;
+  }
+
+  function hasInProgress(mockId: string) {
+    return attempts.some((a) => a.mock_id === mockId && a.status === "in_progress");
   }
 
   function bestScore(mockId: string) {
@@ -77,7 +81,6 @@ export default function StudentDashboard() {
 
       <main className="max-w-5xl mx-auto px-4 md:px-6 py-6">
 
-        {/* Compact Hero */}
         <div className="relative overflow-hidden rounded-2xl p-5 mb-6 text-white"
           style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)" }}>
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full"></div>
@@ -92,7 +95,6 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Clickable Stat Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <button onClick={() => scrollTo(testsRef)}
             className="bg-white rounded-2xl p-4 shadow-sm border border-blue-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md text-left">
@@ -133,7 +135,6 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Mock Tests */}
         <div ref={testsRef} className="scroll-mt-20">
           <h2 className="font-bold text-navy text-lg mb-4">Your Mock Tests</h2>
           {loading ? (
@@ -151,10 +152,11 @@ export default function StudentDashboard() {
             <div className="grid md:grid-cols-2 gap-4 mb-8">
               {mocks.map((m) => {
                 const used = attemptsUsed(m.id);
-              const allowed = m.attempts_allowed ?? 3;
-              const remaining = allowed - used;;
+                const allowed = m.attempts_allowed ?? 3;
+                const remaining = allowed - used;
                 const best = bestScore(m.id);
-                const exhausted = remaining <= 0;
+                const inProgress = hasInProgress(m.id);
+                const exhausted = remaining <= 0 && !inProgress;
                 return (
                   <div key={m.id}
                     className={"bg-white rounded-2xl p-5 shadow-sm border transition-all duration-300 hover:-translate-y-1 hover:shadow-md " +
@@ -189,23 +191,44 @@ export default function StudentDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {exhausted ? (
-                        <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-full font-medium flex-1 text-center">
+                    {inProgress && (
+                      <p className="text-xs bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg px-3 py-1.5 mb-3 text-center">
+                        You have a test in progress. Tap a mode below to resume.
+                      </p>
+                    )}
+
+                    {exhausted ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-2 rounded-xl font-medium flex-1 text-center">
                           Attempts Exhausted
                         </span>
-                      ) : (
-                        <Link href={"/exam/" + m.id}
-                          className="flex-1 py-2.5 rounded-xl font-semibold text-white text-sm text-center transition-all hover:opacity-90 hover:shadow-lg"
-                          style={{ background: "linear-gradient(135deg, #1e3a8a, #2563eb)" }}>
-                          {used === 0 ? "Start Test" : "Retake"}
+                        <Link href={"/leaderboard/" + m.id}
+                          className="px-3 py-2 rounded-xl text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium">
+                          Leaderboard
                         </Link>
-                      )}
-                      <Link href={"/leaderboard/" + m.id}
-                        className="px-3 py-2.5 rounded-xl text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium flex-shrink-0">
-                       Leader Board
-                      </Link>
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Link href={"/exam/" + m.id}
+                            className="py-2.5 rounded-xl font-semibold text-white text-xs md:text-sm text-center transition-all hover:opacity-90 hover:shadow-lg"
+                            style={{ background: "linear-gradient(135deg, #1e3a8a, #2563eb)" }}>
+                            {inProgress ? "Resume" : used === 0 ? "Start" : "Retake"} - Modern
+                          </Link>
+                          <Link href={"/exam/" + m.id + "/tcs"}
+                            className="py-2.5 rounded-xl font-semibold text-white text-xs md:text-sm text-center transition-all hover:opacity-90 hover:shadow-lg bg-[#1f4e79]">
+                            {inProgress ? "Resume" : used === 0 ? "Start" : "Retake"} - CBT
+                          </Link>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-gray-400">CBT mode = real exam style layout</p>
+                          <Link href={"/leaderboard/" + m.id}
+                            className="px-3 py-1.5 rounded-lg text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-medium">
+                            Leaderboard
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -213,7 +236,6 @@ export default function StudentDashboard() {
           )}
         </div>
 
-        {/* Recent Results */}
         {completedAttempts.length > 0 && (
           <div ref={resultsRef} className="scroll-mt-20">
             <h2 className="font-bold text-navy text-lg mb-4">Recent Results</h2>
