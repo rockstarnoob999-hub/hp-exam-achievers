@@ -6,7 +6,7 @@ import Link from "next/link";
 
 // How long a student must press an OMR bubble before it is marked.
 // The real exam says about 2 seconds. Change this number if you want it faster or slower.
-const HOLD_MS = 1500;
+const HOLD_MS = 800;
 
 type Question = {
   id: string;
